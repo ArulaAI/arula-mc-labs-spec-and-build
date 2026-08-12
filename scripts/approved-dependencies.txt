@@ -1,0 +1,7 @@
+# Allowlist for quality_gates.py's unknown-dependency check.
+# One `groupId:artifactId` per line. Lines starting with # are comments.
+# Anything in pom.xml's top-level <dependencies> not listed here fails the gate.
+
+org.springframework.boot:spring-boot-starter-web
+org.springframework.boot:spring-boot-starter-validation
+org.springframework.boot:spring-boot-starter-test

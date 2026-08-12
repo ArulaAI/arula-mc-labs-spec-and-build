@@ -1,0 +1,7 @@
+{
+  "id": "spec-to-build",
+  "rubric": ".forge/grader.yaml",
+  "manifest": ".forge/manifest.yaml",
+  "commands": ["/spec", "/build", "/hand-off", "/grade"],
+  "subagents": ["planner", "code-to-spec-validator", "pr-reviewer"]
+}

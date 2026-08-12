@@ -1,0 +1,155 @@
+lab: spec-to-build
+forge_primitives_version: "0.5.1"
+total_points: 100
+
+# Grades observable process signals + artifact shape, not a hidden answer key.
+# Evidence types match the shipped U2 grader.py parser (shell, file-exists, journey-event-present,
+# compound). Criteria below cover both "did the artifacts land" (Task 7 shape, kept from the
+# original prototype pass) and "did the pipeline actually run as designed" — spec closed via
+# /spec, subagents dispatched in fresh contexts, quality gates genuinely green, hand-off
+# checkpoints recorded, PR body only assembled after gates passed. The latter group is what
+# distinguishes a run that followed the workbench pipeline from one that just produced matching
+# files by hand.
+criteria:
+  - id: baseline-tests-pass
+    title: "The test suite passes"
+    weight: 5
+    evidence:
+      type: shell
+      cmd: "mvn -q test"
+      expect_exit: 0
+      timeout: 300
+
+  - id: spec-closed
+    title: "specs/incremental-auth.spec.md was authored out to a substantive spec"
+    weight: 10
+    evidence:
+      type: file-exists
+      path: specs/incremental-auth.spec.md
+      min_length: 1200
+
+  - id: spec-validated-ready
+    title: "spec-craft ran and reported the spec READY (specs/spec.status.json)"
+    weight: 5
+    evidence:
+      type: compound
+      op: AND
+      children:
+        - type: file-exists
+          path: specs/spec.status.json
+          min_length: 10
+        - type: shell
+          cmd: "grep -q '\"status\"[[:space:]]*:[[:space:]]*\"ready\"' specs/spec.status.json"
+          expect_exit: 0
+
+  - id: plan-produced
+    title: "The planner produced an ordered issue breakdown"
+    weight: 10
+    evidence:
+      type: file-exists
+      path: docs/plans/plan.md
+      min_length: 200
+
+  - id: issues-file-produced
+    title: "issues.json was written with per-issue acceptance criteria"
+    weight: 5
+    evidence:
+      type: file-exists
+      path: issues.json
+      min_length: 100
+
+  - id: capture-implemented
+    title: "capture() no longer throws UnsupportedOperationException"
+    weight: 10
+    evidence:
+      type: shell
+      cmd: "! grep -q 'capture() is not yet implemented' src/main/java/com/mc/preauth/service/HoldService.java"
+      expect_exit: 0
+
+  - id: reverse-implemented
+    title: "reverse() no longer throws UnsupportedOperationException"
+    weight: 5
+    evidence:
+      type: shell
+      cmd: "! grep -q 'reverse() is not yet implemented' src/main/java/com/mc/preauth/service/HoldService.java"
+      expect_exit: 0
+
+  - id: non-negotiable-test-present
+    title: "A test exercises the sequential-partial-capture invariant (NON_NEGOTIABLES rule 2)"
+    weight: 10
+    evidence:
+      type: shell
+      cmd: "grep -rlq 'remainingAuthorized\\|remaining.*[Cc]aptur' src/test/java"
+      expect_exit: 0
+
+  - id: subagents-dispatched
+    title: "The orchestrator dispatched fresh-context subagents (planner, validator, reviewer), not inline reasoning"
+    weight: 10
+    evidence:
+      type: journey-event-present
+      event: pre_tool_use
+      where: "tool_name == 'Task'"
+      occurrences_min: 3
+
+  - id: quality-gates-clean
+    title: "mvn verify (coverage threshold, lint, secret/dependency scan) passes clean"
+    weight: 10
+    evidence:
+      type: shell
+      cmd: "mvn -q verify"
+      expect_exit: 0
+      timeout: 600
+
+  - id: hand-off-checkpoints
+    title: "The participant checkpointed with /hand-off at stage boundaries (docs/workflow-tracker.md)"
+    weight: 5
+    evidence:
+      type: shell
+      cmd: "test -f docs/workflow-tracker.md && [ \"$(grep -c '^## Stage' docs/workflow-tracker.md)\" -ge 6 ]"
+      expect_exit: 0
+
+  - id: pr-body-after-gates
+    title: "The PR body was assembled only once quality gates were clean"
+    weight: 5
+    evidence:
+      type: compound
+      op: AND
+      children:
+        - type: file-exists
+          path: docs/plans/pr-body.md
+          min_length: 200
+        - type: shell
+          cmd: "mvn -q verify"
+          expect_exit: 0
+          timeout: 600
+
+  - id: hypothesis-authored
+    title: "Each exercise's hypothesis was written and reflected on (predict, then verify)"
+    weight: 5
+    evidence:
+      # Every hypothesis.md ships with an unfilled "_<rationale>_" confidence marker. file-exists/
+      # min_length can't distinguish a filled file from the (already sizable) blank template, so
+      # check the marker was actually replaced in all four exercise hypothesis files.
+      type: shell
+      cmd: "! grep -rqF '_<rationale>_' exercises/*/hypothesis.md"
+      expect_exit: 0
+
+  - id: exercise-worksheets-filled
+    title: "Each exercise's spec.md evidence worksheet was filled in (not the technical spec)"
+    weight: 5
+    evidence:
+      type: compound
+      op: AND
+      children:
+        - type: file-exists
+          path: exercises/lab-1-spec/spec.md
+          min_length: 1500
+        - type: file-exists
+          path: exercises/lab-2-plan-and-build/spec.md
+          min_length: 1300
+        - type: file-exists
+          path: exercises/lab-3-validate-and-review/spec.md
+          min_length: 1800
+        - type: file-exists
+          path: exercises/lab-4-ship/spec.md
+          min_length: 1500

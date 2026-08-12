@@ -1,0 +1,11 @@
+schema_version: "1.0"
+lab_id: spec-to-build
+labs_id: spec-to-build
+forge_primitives_version: '0.5.1'
+universals: [U1, U2, U3, U4]
+optionals: []
+local_primitives:
+  - spec-craft
+  - work-orchestrator
+sync_command: "forge sync ."
+# Local fallback when the forge CLI isn't installed: `make sync FORGE_PRIMITIVES=/path/to/forge-prowess-primitives`
