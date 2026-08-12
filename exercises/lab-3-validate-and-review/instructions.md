@@ -45,7 +45,8 @@ criterion for any failure.
 the spec, the issue, and the diff, nothing about why you wrote it the way you did. It defaults to
 FAIL under any uncertainty and explicitly traces what happens on a *second* partial capture.
 
-**Expected artifacts.** A `VALIDATION: PASS` or `VALIDATION: FAIL` verdict per issue.
+**Expected artifacts.** A `VALIDATION: PASS` or `VALIDATION: FAIL` verdict per issue, logged by
+the validator itself to `docs/plans/validation-log.md` — not just left in the chat transcript.
 
 **Inspect.** If it fails, does it name the exact rule and a concrete breaking scenario (e.g. "hold
 100.00, capture 60.00, capture 50.00 — succeeds when it must not")? That specificity is the
@@ -80,8 +81,9 @@ sequential-capture test coverage — without seeing the validator's verdict. `mv
 the JaCoCo coverage threshold, a Checkstyle lint check, and a secret/cardholder-data and
 unknown-dependency scan.
 
-**Expected artifacts.** A `REVIEW: APPROVE` or `REVIEW: BLOCKED` verdict; a clean or failing
-`mvn verify` run.
+**Expected artifacts.** A `REVIEW: APPROVE` or `REVIEW: BLOCKED` verdict, logged by the reviewer
+itself to `docs/plans/review-log.md`; a clean or failing `mvn verify` run. If you try to write
+`docs/plans/pr-body.md` before `mvn verify` is clean, a guard hook blocks the write outright.
 
 **Inspect.** If blocked, are findings specific (file:line, concrete reason), not softened? If a
 gate fails, which one — coverage, lint, or the secret/dependency scan — and why?

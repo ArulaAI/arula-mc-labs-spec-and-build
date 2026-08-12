@@ -1,5 +1,5 @@
 {
-  "_comment": "Journey-recorder hooks (Forge U3), reproduced from the reference lab's wiring.",
+  "_comment": "Journey-recorder hooks (Forge U3), reproduced from the reference lab's wiring, plus a lab-local quality_gates guard scoped to the PR-body write.",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,6 +8,15 @@
           {
             "type": "command",
             "command": "bash .forge/primitives/journey_recorder/adapters/claude_code/record-hook.sh pre_tool_use \"$CLAUDE_TOOL_NAME\" \"$CLAUDE_TOOL_INPUT\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/quality-gates-guard.sh"
           }
         ]
       }

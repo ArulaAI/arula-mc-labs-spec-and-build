@@ -9,7 +9,10 @@ total_points: 100
 # /spec, subagents dispatched in fresh contexts, quality gates genuinely green, hand-off
 # checkpoints recorded, PR body only assembled after gates passed. The latter group is what
 # distinguishes a run that followed the workbench pipeline from one that just produced matching
-# files by hand.
+# files by hand. tdd-order-verified/validator-verdict-logged/reviewer-verdict-logged go one layer
+# further: they check *ordering* and *attribution* (tests before code; this specific subagent
+# reached this specific verdict), not just that the pipeline's tools were invoked some number of
+# times.
 criteria:
   - id: baseline-tests-pass
     title: "The test suite passes"
@@ -22,7 +25,7 @@ criteria:
 
   - id: spec-closed
     title: "specs/incremental-auth.spec.md was authored out to a substantive spec"
-    weight: 10
+    weight: 7
     evidence:
       type: file-exists
       path: specs/incremental-auth.spec.md
@@ -60,7 +63,7 @@ criteria:
 
   - id: capture-implemented
     title: "capture() no longer throws UnsupportedOperationException"
-    weight: 10
+    weight: 7
     evidence:
       type: shell
       cmd: "! grep -q 'capture() is not yet implemented' src/main/java/com/mc/preauth/service/HoldService.java"
@@ -76,24 +79,52 @@ criteria:
 
   - id: non-negotiable-test-present
     title: "A test exercises the sequential-partial-capture invariant (NON_NEGOTIABLES rule 2)"
-    weight: 10
+    weight: 7
     evidence:
       type: shell
       cmd: "grep -rlq 'remainingAuthorized\\|remaining.*[Cc]aptur' src/test/java"
       expect_exit: 0
 
+  - id: tdd-order-verified
+    title: "Tests were written before the implementation (RED before GREEN, not reconstructed after)"
+    weight: 5
+    evidence:
+      # docs/plans/tdd-log.md is append-only (see .claude/commands/build.md step 2a/2b) — the first
+      # RED line must come before the first GREEN line. Journey-log timestamps were considered but
+      # rejected: the 80-char redacted preview of a Write/Edit's file path is frequently truncated
+      # before reaching the filename on a long absolute path, making filename matching unreliable.
+      type: shell
+      cmd: "test -f docs/plans/tdd-log.md && grep -q '^RED' docs/plans/tdd-log.md && grep -q '^GREEN' docs/plans/tdd-log.md && [ \"$(grep -n '^RED' docs/plans/tdd-log.md | head -1 | cut -d: -f1)\" -lt \"$(grep -n '^GREEN' docs/plans/tdd-log.md | head -1 | cut -d: -f1)\" ]"
+      expect_exit: 0
+
   - id: subagents-dispatched
     title: "The orchestrator dispatched fresh-context subagents (planner, validator, reviewer), not inline reasoning"
-    weight: 10
+    weight: 7
     evidence:
       type: journey-event-present
       event: pre_tool_use
       where: "tool_name == 'Task'"
       occurrences_min: 3
 
+  - id: validator-verdict-logged
+    title: "code-to-spec-validator recorded a PASS verdict (docs/plans/validation-log.md), not just chat output"
+    weight: 5
+    evidence:
+      type: shell
+      cmd: "grep -q 'VALIDATION: PASS' docs/plans/validation-log.md"
+      expect_exit: 0
+
+  - id: reviewer-verdict-logged
+    title: "pr-reviewer recorded an APPROVE verdict (docs/plans/review-log.md), not just chat output"
+    weight: 5
+    evidence:
+      type: shell
+      cmd: "grep -q 'REVIEW: APPROVE' docs/plans/review-log.md"
+      expect_exit: 0
+
   - id: quality-gates-clean
     title: "mvn verify (coverage threshold, lint, secret/dependency scan) passes clean"
-    weight: 10
+    weight: 7
     evidence:
       type: shell
       cmd: "mvn -q verify"

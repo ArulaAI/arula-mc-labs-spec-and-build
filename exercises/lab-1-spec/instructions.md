@@ -42,7 +42,8 @@ at least one AC — and with you able to restate all three non-negotiables from 
 
 1. Open `hypothesis.md` in this directory and fill in the pre-tool prediction section. Two
    minutes, before you run anything.
-2. Run:
+2. Run (this deliberately names the stub's actual seeded gaps rather than asking `spec-craft` to
+   discover them from a generic "draft the spec" prompt — you already read them in Stage 0):
    ```text
    /spec Close the gaps in specs/incremental-auth.spec.md — the Interfaces and Risks sections, and
    the non-testable AC-4 — bound by specs/NON_NEGOTIABLES.md. Make every acceptance criterion

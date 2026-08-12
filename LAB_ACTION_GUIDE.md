@@ -93,8 +93,9 @@ or run `/grade` directly. Either scores the current run against `.forge/grader.y
 
 `specs/incremental-auth.spec.md`, `specs/spec.status.json`, `specs/NON_NEGOTIABLES.md`,
 `exercises/lab-1-spec/{hypothesis,spec}.md`, `issues.json`, `docs/plans/plan.md`,
-`exercises/lab-2-plan-and-build/{hypothesis,spec}.md`, the generated tests and code,
-`exercises/lab-3-validate-and-review/{hypothesis,spec}.md`, `docs/plans/pr-body.md`,
+`exercises/lab-2-plan-and-build/{hypothesis,spec}.md`, `docs/plans/tdd-log.md`, the generated
+tests and code, `exercises/lab-3-validate-and-review/{hypothesis,spec}.md`,
+`docs/plans/validation-log.md`, `docs/plans/review-log.md`, `docs/plans/pr-body.md`,
 `exercises/lab-4-ship/{hypothesis,spec}.md`, `docs/workflow-tracker.md`, the journey log under
 `.forge/journey/`, the grade card (`.forge/journey/<run-id>/grade.json`),
 `docs/FACILITATOR_KEY.md` (facilitator only).

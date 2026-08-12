@@ -27,20 +27,25 @@ For each issue in `issues.json`:
 
 **a. TDD.** Write the failing test(s) for this issue's acceptance criteria first — they must fail
 before any implementation exists, and the failure must be for the right reason (missing behavior,
-not a compile error).
+not a compile error). Append one line to `docs/plans/tdd-log.md`: `RED <issue-id>` — create the
+file with a one-line header if it doesn't exist yet.
 
 **b. Implement.** Write the smallest implementation in `HoldService`/`HoldStore` that makes the
-issue's tests pass. Do not implement ahead of the current issue.
+issue's tests pass. Do not implement ahead of the current issue. Once the tests pass, append
+`GREEN <issue-id>` to `docs/plans/tdd-log.md`. This is the log `/grade` checks to confirm tests
+were actually written first, not reconstructed afterward.
 
 **c. Validate against spec — fresh context.** Dispatch the `code-to-spec-validator` subagent.
 Give it only: the spec, this issue, and the diff for this issue — nothing about how you got here.
-It returns PASS or FAIL against `specs/NON_NEGOTIABLES.md`. **On FAIL: go back to step (b) for the
-smallest fix, then re-validate. Do not proceed to (d) on a FAIL.**
+It returns PASS or FAIL against `specs/NON_NEGOTIABLES.md` and appends its own verdict line to
+`docs/plans/validation-log.md` (see that subagent's own instructions). **On FAIL: go back to step
+(b) for the smallest fix, then re-validate. Do not proceed to (d) on a FAIL.**
 
 **d. Review — fresh context.** Dispatch the `pr-reviewer` subagent with only the diff. It reads
 `.claude/rules/coding-standards.md` and `.claude/rules/payments-guardrails.md` itself — do not
 summarize or paraphrase those rules for it, and do not give it `docs/FACILITATOR_KEY.md`. It
-reviews as a skeptical reviewer who did not write this code.
+reviews as a skeptical reviewer who did not write this code, and appends its own verdict line to
+`docs/plans/review-log.md`.
 
 **e. Quality gate.** Run:
 ```bash

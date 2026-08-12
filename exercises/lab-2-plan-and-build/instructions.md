@@ -82,7 +82,8 @@ tests pass. Stop at the first issue whose tests will not go green and report why
 criteria, then writes the smallest implementation that makes it pass.
 
 **Expected artifacts.** New tests under `src/test/java`, implementation changes in
-`HoldService`/`HoldStore`.
+`HoldService`/`HoldStore`, and a `RED <issue-id>` / `GREEN <issue-id>` pair per issue in
+`docs/plans/tdd-log.md` — the machine-checkable record that tests came first.
 
 **Inspect — closely, this is the stage where it bites.** The remaining-amount check
 specifically: does it compare the incoming capture amount against `hold.remainingAuthorized()`

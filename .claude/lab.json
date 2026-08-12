@@ -1,4 +1,5 @@
 {
+  "_comment": "rubric is .forge/grader.yaml, not <id>.rubric.yaml, to match the actual Forge platform convention confirmed against the reference labs.",
   "id": "spec-to-build",
   "rubric": ".forge/grader.yaml",
   "manifest": ".forge/manifest.yaml",

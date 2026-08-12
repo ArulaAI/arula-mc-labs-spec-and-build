@@ -74,6 +74,7 @@ The review bar `pr-reviewer` reads before it looks at a diff:
 | Hook | Behavior |
 |---|---|
 | `journey_recorder` (`PreToolUse`, `PostToolUse`, `UserPromptSubmit`, `SessionStart`, `SessionEnd`) | Appends every session event to `.forge/journey/<run-id>.jsonl`. This is what `lab_grader`'s `journey-event-present` criteria and the `subagents-dispatched` check read. |
+| `quality-gates-guard` (`.claude/hooks/quality-gates-guard.sh`, `PreToolUse` matched on `Write`) | Lab-local, not synced. No-op for every write except `docs/plans/pr-body.md`; for that one, runs `mvn verify` and blocks the write (exit 2) if it isn't clean. The gate that used to be enforced only by `/build`'s own instructions is now also enforced structurally. |
 
 ## Quality gates (`pom.xml`, bound to `mvn verify`) — not a Forge primitive, but load-bearing
 

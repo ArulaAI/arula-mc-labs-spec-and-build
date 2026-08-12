@@ -47,3 +47,7 @@ End with exactly one of:
 
 A FAIL sends the issue back to implementation. That is the point of running you in a fresh
 context — you have no stake in defending code you didn't write.
+
+Also append that exact verdict line, prefixed with the issue id, to `docs/plans/validation-log.md`
+(create it with a one-line header if it doesn't exist). This is the record `/grade` checks — a
+verdict that only exists in this conversation isn't evidence of anything.

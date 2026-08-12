@@ -43,3 +43,7 @@ End with exactly one of:
 - `REVIEW: BLOCKED — <list of blocker findings, each with file:line and the concrete reason>`
 
 A PR does not get created while `REVIEW: BLOCKED` stands.
+
+Also append that exact verdict line, prefixed with the issue id, to `docs/plans/review-log.md`
+(create it with a one-line header if it doesn't exist). This is the record `/grade` checks — a
+verdict that only exists in this conversation isn't evidence of anything.
