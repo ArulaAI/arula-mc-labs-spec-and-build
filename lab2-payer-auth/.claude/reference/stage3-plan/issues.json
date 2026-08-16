@@ -1,0 +1,65 @@
+[
+  {
+    "number": 1,
+    "title": "Map the stored legacy record onto the full response aggregate",
+    "body": "LegacyResponseMapper currently maps only the payerAuthentication block; legacyOrderData, merchant and order come back null. Complete the 1:1 mapping using the legacy field map in .claude/context/target-pass-proxy.context.md. Nothing is computed, defaulted or enriched — a null authentication value maps through as null. Satisfies AC-1.",
+    "acs": ["AC-1"],
+    "repo": "boost-authentication-service",
+    "branch": "issue/1-complete-legacy-mapping",
+    "status": "open"
+  },
+  {
+    "number": 2,
+    "title": "Return 404, 403 and 400 as distinct outcomes",
+    "body": "A missing record currently returns 200 with an empty body, and an unauthorized caller currently returns 404. Return 404 for no matching record, 403 for an unauthorized or unidentified caller (no data), and 400 for a malformed identifier, each with the structured ErrorResponse from the contract. No payload content in the error body. Satisfies AC-4, AC-5, AC-6.",
+    "acs": ["AC-4", "AC-5", "AC-6"],
+    "repo": "boost-authentication-service",
+    "branch": "issue/2-error-semantics",
+    "status": "open"
+  },
+  {
+    "number": 3,
+    "title": "Keep externally authenticated transactions out of scope",
+    "body": "The stored record carries authenticationOrigin. Only INTERNAL records are served; an EXTERNAL record is treated as out of scope and returns 404 rather than being served as if internally authenticated. Do not add any handling, provider or code path for external authentication. Satisfies AC-7.",
+    "acs": ["AC-7"],
+    "repo": "boost-authentication-service",
+    "branch": "issue/3-internal-only-scope",
+    "status": "open"
+  },
+  {
+    "number": 4,
+    "title": "Propagate the tracing headers across the hop",
+    "body": "Read the five tracing headers from the inbound request, carry the correlation id into the legacy retrieval query, and echo the headers back to the caller. Values are propagated, never logged. Satisfies AC-8.",
+    "acs": ["AC-8"],
+    "repo": "boost-authentication-service",
+    "branch": "issue/4-tracing-headers",
+    "status": "open"
+  },
+  {
+    "number": 5,
+    "title": "Stop writing sensitive data to the log sink",
+    "body": "The retrieval path logs the legacy record, which carries the CAVV, the PAN and customer PII, to logs/auth-service.log. Log only non-sensitive identifiers. Nothing sensitive may reach a log line, an error message or an exception message. Satisfies AC-2.",
+    "acs": ["AC-2"],
+    "repo": "boost-authentication-service",
+    "branch": "issue/5-no-sensitive-logging",
+    "status": "open"
+  },
+  {
+    "number": 6,
+    "title": "Make retrieval read-only: never invoke Authenticate Payer",
+    "body": "Retrieval must return the stored record exactly as stored. No path reachable from a retrieval request may invoke LegacyPassClient.authenticatePayer — it is a billable provider operation and the modern path is observational only. A stored record with a null authentication value is a legitimate stored state and is returned as-is. Satisfies AC-3 (AC-INCOMPLETE).",
+    "acs": ["AC-3"],
+    "repo": "boost-authentication-service",
+    "branch": "issue/6-read-only-retrieval",
+    "status": "open"
+  },
+  {
+    "number": 7,
+    "title": "Wire the consumer against the shared contract",
+    "body": "In boost-order-processing, propagate the tracing headers order processing received into the call to the authentication service, and treat the producer's 404 as 'no stored result' rather than a transport failure. The shared payer-authentication-v1.yaml stays identical in both repos. Satisfies AC-9.",
+    "acs": ["AC-9"],
+    "repo": "boost-order-processing",
+    "branch": "issue/7-consumer-wiring",
+    "status": "open"
+  }
+]

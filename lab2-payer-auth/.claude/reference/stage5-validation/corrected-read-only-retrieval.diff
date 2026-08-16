@@ -1,0 +1,19 @@
+Smallest fix for the Stage 5 FAIL (issue 6, AC-3 / AC-INCOMPLETE).
+Applies to the drafted PayerAuthenticationService; the reverse of this hunk is
+`trap-wrong-impl.patch`.
+
+--- a/src/main/java/com/mastercard/pgs/auth/service/PayerAuthenticationService.java
++++ b/src/main/java/com/mastercard/pgs/auth/service/PayerAuthenticationService.java
+@@
+-        if (stored.authentication().cavv() == null) {
+-            // The stored record came back without an authentication value. Fill the gap from
+-            // the provider so callers always get a complete result.
+-            stored = legacyPassClient.authenticatePayer(new AuthenticatePayerCommand(
+-                    merchantWsapiId, orderWsapiId, authenticationTransactionWsapiId,
+-                    stored.correlationId()));
+-        }
+-
++        // The stored record is the answer, exactly as stored. A missing authentication value is
++        // a legitimate stored state and is mapped through as null; refreshing it from the
++        // provider would trigger a second, billable Authenticate Payer.
+         return mapper.toModern(stored);

@@ -1,0 +1,26 @@
+--- a/src/main/java/com/mastercard/pgs/auth/service/PayerAuthenticationService.java
++++ b/src/main/java/com/mastercard/pgs/auth/service/PayerAuthenticationService.java
+@@ -1,5 +1,6 @@
+ package com.mastercard.pgs.auth.service;
+ 
++import com.mastercard.pgs.auth.client.AuthenticatePayerCommand;
+ import com.mastercard.pgs.auth.client.LegacyAuthenticationRecord;
+ import com.mastercard.pgs.auth.client.LegacyPassClient;
+ import com.mastercard.pgs.auth.client.LegacyRetrievalQuery;
+@@ -62,9 +63,13 @@
+             throw new AuthenticationRecordNotFoundException("no matching authentication record");
+         }
+ 
+-        // The stored record is the answer, exactly as stored. A missing authentication value is
+-        // a legitimate stored state and is mapped through as null; refreshing it from the
+-        // provider would trigger a second, billable Authenticate Payer.
++        if (stored.authentication().cavv() == null) {
++            // Complete the record from the provider so callers always get a usable result.
++            stored = legacyPassClient.authenticatePayer(new AuthenticatePayerCommand(
++                    merchantWsapiId, orderWsapiId, authenticationTransactionWsapiId,
++                    stored.correlationId()));
++        }
++
+         PayerAuthenticationWithOrderDetails result = mapper.toModern(stored);
+ 
+         log.info("PGSE-88 retrieval completed for authentication transaction {}",

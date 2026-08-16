@@ -1,0 +1,22 @@
+{
+  "lab": 2,
+  "title": "The Call You Must Not Make Twice",
+  "thread": "PGSE-88",
+  "level": 200,
+  "duration_minutes": 120,
+  "rubric": ".claude/rubrics/lab-2.yaml",
+  "action_guide": "boost-authentication-service/LAB_ACTION_GUIDE.md",
+  "repos": {
+    "owned": ["boost-authentication-service", "boost-order-processing"],
+    "compressed_context_only": ["target-pass-proxy"]
+  },
+  "objectives": [
+    "No code against an unvalidated spec — /build refuses until spec.status.json says valid:true",
+    "Keep an agent oriented across a repo it cannot see, via Tier-1 compressed context",
+    "Failure modes are not only security bugs — a correct-looking implementation can cost money on every call",
+    "A judgment step run by the author's own context is theatre; the validator runs fresh"
+  ],
+  "targets": ["spec-ready", "T1-no-second-billable-call", "T2-scope", "T3-proxy-not-reimplement", "T4-no-sensitive-logging", "T5-error-semantics"],
+  "commands": ["/lab", "/spec", "/build", "/hand-off", "/grade"],
+  "subagents": ["planner", "code-to-spec-validator", "pr-reviewer"]
+}

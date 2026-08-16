@@ -1,0 +1,134 @@
+openapi: 3.0.3
+info:
+  title: Retrieve Payer Authentication Results
+  description: >-
+    Internal API that lets modern platform components retrieve payer authentication results
+    and the associated order details for internally authenticated transactions (PGSE-88).
+    The initial version proxies to the legacy Target/PASS platform, which remains the system
+    of record. Retrieval is read-only: it must never trigger a second, billable Authenticate
+    Payer operation.
+  version: 1.0.0
+  x-contract-owner: boost-authentication-service
+  x-contract-consumers:
+    - boost-order-processing
+
+servers:
+  - url: http://localhost:8081
+
+paths:
+  /merchants/{merchant_wsapi_id}/orders/{order_wsapi_id}/authentications/{authentication_transaction_wsapi_id}:
+    get:
+      operationId: retrievePayerAuthentication
+      summary: Retrieve the stored payer authentication result for an order.
+      parameters:
+        - { name: merchant_wsapi_id, in: path, required: true, schema: { type: string } }
+        - { name: order_wsapi_id, in: path, required: true, schema: { type: string } }
+        - { name: authentication_transaction_wsapi_id, in: path, required: true, schema: { type: string } }
+        - { name: X-Mc-Client-Id, in: header, required: true, schema: { type: string } }
+        - { name: X-Client-Correlation-Id, in: header, required: false, schema: { type: string } }
+        - { name: X-Mc-Correlation-Id, in: header, required: false, schema: { type: string } }
+        - { name: X-Mc-Correlation-Request-ID, in: header, required: false, schema: { type: string } }
+        - { name: X-Mc-Tns-Logging-Id, in: header, required: false, schema: { type: string } }
+        - { name: X-Mc-Toggle-Version, in: header, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: Authentication and order details for the stored result.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayerAuthenticationWithOrderDetails'
+        '400':
+          description: Malformed or invalid request.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: Unauthorized caller. No data is returned.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '404':
+          description: No matching authentication record.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+components:
+  schemas:
+    PayerAuthenticationWithOrderDetails:
+      type: object
+      required: [payerAuthentication, legacyOrderData, merchant, order]
+      properties:
+        payerAuthentication: { $ref: '#/components/schemas/PayerAuthentication' }
+        legacyOrderData: { $ref: '#/components/schemas/LegacyOrderData' }
+        merchant: { $ref: '#/components/schemas/Merchant' }
+        order: { $ref: '#/components/schemas/OrderDetails' }
+
+    PayerAuthentication:
+      type: object
+      required: [method, status, scheme, protocolVersion, challengeIndicator, authenticationValue, psd2ScaExemption]
+      properties:
+        method:
+          type: string
+          enum: [EMV_3DS, PASSKEY, RUPAY]
+        status: { type: string }
+        scheme: { type: string }
+        protocolVersion: { type: string }
+        challengeIndicator: { type: string }
+        authenticationValue:
+          type: string
+          nullable: true
+          description: >-
+            CAVV. Sensitive cardholder data. Null when the stored legacy record has no
+            authentication value — a legitimate stored state that is mapped through as-is.
+        psd2ScaExemption: { type: string }
+
+    LegacyOrderData:
+      type: object
+      required: [browser, ipAddress, referenceOrder]
+      properties:
+        browser: { type: string }
+        ipAddress: { type: string }
+        referenceOrder: { type: string }
+
+    Merchant:
+      type: object
+      required: [merchantId, name, categoryCode]
+      properties:
+        merchantId: { type: string }
+        name: { type: string }
+        categoryCode: { type: string }
+
+    OrderDetails:
+      type: object
+      required: [orderId, currency, amountMinor, customerReference, billingCountry, shippingCountry, funding]
+      properties:
+        orderId: { type: string }
+        currency: { type: string }
+        amountMinor: { type: integer, format: int64 }
+        customerReference: { type: string }
+        billingCountry: { type: string }
+        shippingCountry: { type: string }
+        funding: { $ref: '#/components/schemas/OrderFunding' }
+
+    OrderFunding:
+      type: object
+      required: [method, cardNumber, cardBrand]
+      properties:
+        method: { type: string }
+        cardNumber:
+          type: string
+          description: PAN as held by the system of record. Never write this to any log sink.
+        cardBrand: { type: string }
+
+    ErrorResponse:
+      type: object
+      required: [source, reasonCode, description, recoverability, details]
+      properties:
+        source: { type: string }
+        reasonCode: { type: string }
+        description: { type: string }
+        recoverability: { type: string }
+        details:
+          type: array
+          items: { type: string }

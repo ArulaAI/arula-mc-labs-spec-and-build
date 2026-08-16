@@ -1,0 +1,51 @@
+# Lab 2 — Layer A rubric: journey completeness.
+#
+# Scored by the Workbench plugin's `lab-grader` (`/grade`), which globs the journey and supports
+# exactly four checks: event_exists, event_contains, event_count_gte, secret_scan_clean.
+#
+# Layer A proves the learner moved through the stages and leaked nothing. It does NOT prove the
+# work is correct — that is Layer B, `.claude/scripts/grade_repo.py`, which measures repo state
+# and behaviour (including the "at least 7 hand-off boundaries" count that this vocabulary
+# cannot express; see Workbench_Issues_To_Address.md L2-10).
+
+lab: 2
+title: "The Call You Must Not Make Twice — Retrieve Payer Authentication Results (PGSE-88)"
+pass_threshold: 70
+
+criteria:
+  - id: lab-started
+    description: "Learner started the lab in the workspace root (/lab)"
+    max_score: 10
+    evidence: "session-start event present in the journey"
+    check: "event_exists:session-start"
+
+  - id: stage-boundaries-recorded
+    description: "Learner closed stages with /hand-off"
+    max_score: 20
+    evidence: "hand-off events present in the journey (Layer B counts them: 7 expected)"
+    check: "event_exists:hand-off"
+
+  - id: spec-gate-exercised
+    description: "Learner reached and closed the spec stage"
+    max_score: 15
+    # Keyed on the /hand-off event's stage_name rather than a tool-input preview: the plugin's
+    # journey hook does not populate tool input (Workbench_Issues_To_Address.md item 1), so
+    # `event_contains:pre-tool:spec` would never match in practice.
+    evidence: "a hand-off event whose stage name names the spec stage"
+    check: "event_contains:hand-off:spec"
+
+  - id: journey-captured
+    description: "The session produced a real journey, not an empty one"
+    max_score: 15
+    # Deliberately a low floor. The plugin grader reads ONE journey file, and the hook's session
+    # id bug scatters a session across several (Workbench_Issues_To_Address.md item 1), so a high
+    # threshold would fail a diligent learner. Layer B globs journey/*.jsonl and counts the seven
+    # stage boundaries properly.
+    evidence: "at least 5 recorded events in the journey file"
+    check: "event_count_gte:5"
+
+  - id: no-sensitive-data-in-journey
+    description: "No PAN, CAVV or secret was written into the audit trail"
+    max_score: 40
+    evidence: "secret_scan returns empty on the journey"
+    check: "secret_scan_clean"
