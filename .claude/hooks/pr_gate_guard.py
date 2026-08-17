@@ -23,6 +23,16 @@ import sys
 from pathlib import Path
 
 PR_ARTIFACT = "docs/PR_DESCRIPTION.md"
+PR_ARTIFACT_NAME = "PR_DESCRIPTION.md"
+# A shell command counts as an attempt to write the PR artifact only if it both names the file
+# and does something write-shaped to it. Reading it stays allowed.
+SHELL_WRITE = re.compile(
+    r">>?\s*\S*PR_DESCRIPTION\.md"          # > file / >> file
+    r"|\btee\b[^|;]*PR_DESCRIPTION\.md"
+    r"|\b(?:cp|mv|install)\b[^|;]*PR_DESCRIPTION\.md"
+    r"|\bsed\b[^|;]*-i[^|;]*PR_DESCRIPTION\.md"
+    r"|PR_DESCRIPTION\.md[^|;]*['\"]?\s*,\s*['\"]w"   # python open(..., "w")
+)
 REPOS = ("boost-authentication-service", "boost-order-processing")
 LOG_SINKS = (
     "boost-authentication-service/logs/auth-service.log",
@@ -58,8 +68,26 @@ def maven_verify(repo: Path) -> tuple[bool, str]:
     )
     if result.returncode == 0:
         return True, ""
-    tail = (result.stdout + result.stderr).strip().splitlines()[-12:]
-    return False, "\n".join(tail)
+    return False, failure_summary(result.stdout + result.stderr)
+
+
+def failure_summary(output: str) -> str:
+    """The lines that say what is actually red, not Maven's generic epilogue.
+
+    The denial is a teaching moment — it has to name the failing test, not point at
+    MojoFailureException.
+    """
+    interesting = [
+        line.strip() for line in output.splitlines()
+        if re.search(r"Tests run:.*(?:Failures: [1-9]|Errors: [1-9])", line)
+        or re.match(r"\[ERROR\]\s{2,}\S+Test\b", line)
+        or "COMPILATION ERROR" in line
+        or re.match(r"\[ERROR\].*\.java:\[\d+", line)
+    ]
+    if interesting:
+        return "\n".join(f"  {line}" for line in interesting[:8])
+    tail = [line for line in output.strip().splitlines() if line.strip()][-8:]
+    return "\n".join(f"  {line}" for line in tail)
 
 
 def scan_logs(root: Path) -> list[str]:
@@ -82,7 +110,14 @@ def main() -> None:
 
     tool_input = event.get("tool_input") or {}
     target = str(tool_input.get("file_path") or tool_input.get("path") or "")
-    if not target.replace("\\", "/").endswith(PR_ARTIFACT):
+    command = str(tool_input.get("command") or "")
+
+    writes_pr_artifact = (
+        target.replace("\\", "/").endswith(PR_ARTIFACT)
+        or target.replace("\\", "/").endswith(PR_ARTIFACT_NAME)
+        or bool(SHELL_WRITE.search(command))
+    )
+    if not writes_pr_artifact:
         sys.exit(0)
 
     root = workspace_root()

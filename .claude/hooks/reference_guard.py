@@ -5,13 +5,17 @@ Lab-local PreToolUse guard: protect the answer material under .claude/reference/
 Denies Read/Edit/Write/Bash access to anything under the workspace `.claude/reference/`
 directory unless the facilitator has set WORKBENCH_FACILITATOR=1.
 
+`docs/FACILITATOR_KEY.md` is guarded by the same rule. The key itself lives under
+`.claude/reference/`; the file at the documented path is a pointer stub, and guarding it keeps
+an agent that lists `docs/` from wandering into facilitator material.
+
 Hook contract: event JSON arrives on stdin; a permission decision is returned on stdout.
 """
 import json
 import os
 import sys
 
-GUARDED = ".claude/reference"
+GUARDED = (".claude/reference", "docs/FACILITATOR_KEY.md")
 PATH_KEYS = ("file_path", "path", "notebook_path", "filePath")
 
 
@@ -43,10 +47,11 @@ def main() -> None:
     targets.extend(str(p) for p in (tool_input.get("paths") or []))
 
     for target in targets:
-        if GUARDED in target.replace("\\", "/"):
+        normalized = target.replace("\\", "/")
+        if any(guarded in normalized for guarded in GUARDED):
             deny(
-                "Lab 2 reference guard: `.claude/reference/` holds the facilitator answer "
-                "material for this lab (completed spec, TDD tests, corrected implementation, "
+                "Lab 2 reference guard: this path holds the facilitator answer material for "
+                "the lab (facilitator key, completed spec, TDD tests, corrected implementation, "
                 "expected validator output). It is not readable or writable during a session. "
                 "If you are stuck, ask the facilitator to restore the stage you need."
             )

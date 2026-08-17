@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  * <p>LAB FIXTURE — this class is the legacy edge's behaviour. Do not change what it does;
  * changing the stub changes the system of record, not your service.
  *
- * <p>Two seeded stored states matter:
+ * <p>Three stored records exist:
  * <ul>
  *   <li>{@code ORD-1001 / AUTH-9001} — a complete internally authenticated record.</li>
  *   <li>{@code ORD-1002 / AUTH-9002} — an internally authenticated record stored without a
@@ -19,14 +19,14 @@ import org.springframework.stereotype.Component;
  * </ul>
  *
  * <p>{@link #authenticatePayer} does not fail, warn, or throw. It succeeds, returns a
- * plausible refreshed record, and increments a counter — exactly like the real billable
- * operation, whose only visible trace is on an invoice.
+ * record, and increments a counter. Both the return value and the counter are here so a test
+ * can observe whether this operation was invoked at all.
  */
 @Component
 public class LegacyPassClientStub implements LegacyPassClient {
 
     private static final String STORED_CAVV = "AAABBJg0VhI0VniQEjRWAAAAAAA=";
-    private static final String REFRESHED_CAVV = "AAABCZg1WhJ1WniREjVXAAAAAAA=";
+    private static final String LIVE_AUTHENTICATION_CAVV = "AAABCZg1WhJ1WniREjVXAAAAAAA=";
 
     private final AtomicInteger authenticatePayerCallCount = new AtomicInteger();
 
@@ -51,7 +51,7 @@ public class LegacyPassClientStub implements LegacyPassClient {
                 command.orderWsapiId(), command.authenticationTransactionWsapiId()));
         String origin = existing != null ? existing.authenticationOrigin() : "INTERNAL";
         return record(command.merchantWsapiId(), command.orderWsapiId(),
-                command.authenticationTransactionWsapiId(), origin, REFRESHED_CAVV);
+                command.authenticationTransactionWsapiId(), origin, LIVE_AUTHENTICATION_CAVV);
     }
 
     /** Number of billable Authenticate Payer operations this stub has been asked to perform. */

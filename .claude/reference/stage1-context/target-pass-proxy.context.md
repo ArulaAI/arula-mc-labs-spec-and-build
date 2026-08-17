@@ -22,18 +22,25 @@ Authentication Service (PASS) on the legacy Target platform.
 
 | Operation | Kind | Cost | Purpose |
 |---|---|---|---|
-| `retrieveAuthenticationResult` | read-only | free, repeatable, safe | Return the **stored** authentication result for a merchant / order / authentication-transaction id (and/or correlation id). No side effects. |
+| `retrieveAuthenticationResult` | read-only | free, repeatable, safe | Return the **stored** authentication result for one merchant + order + authentication-transaction id. No side effects. |
 | `authenticatePayer` | live provider call | **BILLABLE — charged per invocation** | Perform a live payer authentication with the service provider. Affects the live transaction outcome. **Not part of retrieval.** |
 
-Lookup keys accepted by `retrieveAuthenticationResult`: by order id, by authentication transaction
-id, or by order + authentication transaction id, always for a given merchant. A correlation id may
-be supplied and is echoed back on the stored record.
+**Lookup key.** `retrieveAuthenticationResult` matches on all three identifiers together —
+merchant + order + authentication transaction. There is no partial lookup: an order id on its own,
+or an authentication transaction id on its own, matches nothing. (The wider platform exposes
+those narrower lookups elsewhere; this retrieval edge does not.)
+
+**Correlation id.** The caller may pass its own correlation id with the lookup for tracing. It is
+not part of the key and it does not change what comes back. The `correlationId` **on the returned
+record** is a different value: it is the correlation id under which the legacy platform persisted
+that authentication response, and it is returned exactly as stored.
 
 ## Request/response contracts
 
 `retrieveAuthenticationResult(merchantWsapiId, orderWsapiId, authenticationTransactionWsapiId, correlationId)`
 returns one stored record, or **nothing** when no record matches (there is no "empty result"
-object — absence is absence).
+object — absence is absence). The first three arguments are the key; `correlationId` is the
+caller's tracing id and may be null.
 
 Stored record shape:
 

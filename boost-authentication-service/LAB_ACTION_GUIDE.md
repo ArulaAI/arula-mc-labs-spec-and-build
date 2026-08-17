@@ -45,6 +45,17 @@ context artifact. That is the point of Stage 1.
 Do not open a single repo as the project root — the shared `.claude/`, the hooks and the grader
 all resolve from the workspace root.
 
+**The two owned repos are two independent git repositories**, each with its own history and its
+own committed baseline. If you received the lab as a single distribution bundle, run this once
+before you start — it is idempotent, and it only touches git metadata, never your files:
+
+```bash
+.claude/scripts/bootstrap_workspace.sh
+```
+
+It prints one line per repo. After it runs, `git log` and `git diff HEAD` work **inside each
+owned repo** — which is what the PAN/secret gate diffs against from your first edit.
+
 ### Prerequisites
 
 - JDK 17 (Zulu 21 is fine; the compile target is 17) and Maven 3.9+
@@ -150,9 +161,12 @@ explicit "DOES NOT call authenticatePayer" statement.
 Run the validator yourself first and look at what it says:
 
 ```bash
-cd boost-authentication-service
-python3 "$CLAUDE_PLUGIN_ROOT/skills/spec-craft/scripts/validate_spec.py" specs/retrieve-payer-auth.spec.md
+.claude/scripts/validate_spec.sh boost-authentication-service/specs/retrieve-payer-auth.spec.md
 ```
+
+That wrapper locates and runs the plugin's own `validate_spec.py` — the same script `/spec`
+uses — wherever the `workbench` plugin happens to be installed. (Do not call the plugin path
+directly: `$CLAUDE_PLUGIN_ROOT` is only set while the plugin itself is running.)
 
 It reports NOT READY, names the missing section and the untestable acceptance criterion, and
 writes `specs/retrieve-payer-auth.spec.status.json` with `"valid": false`.
@@ -276,6 +290,12 @@ reasoning, or your own review.
 the test that proves it — a test asserting the criterion, written before the fix. Then
 re-validate.
 
+For the billable-call criterion (AC-3 / AC-INCOMPLETE) the house convention is to name that test
+`NoSecondAuthenticatePayerCallTest`, and to assert the negative directly:
+`verify(legacyPassClient, never()).authenticatePayer(any())`. The name is a convention — grading
+looks for the assertion, not the filename — but a shared name makes the trail readable to the
+next person.
+
 **Human gate.** Every FAIL is either fixed or explicitly accepted with a recorded reason.
 
 **Failure / recovery.** `reference/stage5-validation/`.
@@ -299,9 +319,23 @@ re-validate.
    > `specs/NON_NEGOTIABLES.md`. You are not the author. Return APPROVE / REQUEST CHANGES /
    > BLOCKER with `file:line` findings."
 
-2. **Try the PR gate early — on purpose.** Before the gates are green, ask the session to write
-   `docs/PR_DESCRIPTION.md`. The write is **denied** by a `PreToolUse` guard, which tells you
-   which gate is red. Watch the control fire. This is the lesson: the gate is structural.
+2. **Make the PR gate fire — on purpose.** Do this before you close the gates, and make it
+   deterministic rather than hoping something is still broken:
+
+   a. Add one line to `PayerAuthenticationService` that logs the record you just retrieved —
+      the exact "helpful debug logging" the non-negotiables forbid:
+      `log.info("retrieved {}", stored);`
+   b. Ask the session to write `docs/PR_DESCRIPTION.md`. The write is **denied** by a
+      `PreToolUse` guard, and the denial names what is red — your own no-sensitive-logging test
+      failing `mvn verify`, and the scan that found a PAN and an authentication value in
+      `logs/auth-service.log`. Try it with a shell redirect too, if someone suggests it: the
+      guard covers `Bash` writes as well as `Write`/`Edit`.
+   c. Remove the line you added. Re-run `mvn verify`.
+
+   Two lessons in one minute: the control is structural — it is not advice you can accept and
+   move past — and the leak it caught is one line of well-meant logging, added by a person who
+   knew the rule. If your group still has a genuinely red gate at this point, you do not need
+   step (a): it will fire on its own.
 
 3. **Close the gates.** `mvn verify` in **both** repos — tests, the ArchUnit layering rule,
    JaCoCo, the consumer contract test — and confirm the log sink carries no CAVV, PAN or PII.

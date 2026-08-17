@@ -3,3 +3,6 @@ logs/
 *.log
 journey/
 .DS_Store
+
+# Python bytecode from the lab scripts
+__pycache__/

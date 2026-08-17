@@ -7,12 +7,19 @@ unless `WORKBENCH_FACILITATOR=1` is set. A learner session cannot open any of it
 
 ```bash
 export WORKBENCH_FACILITATOR=1
-# copy only what the group needs, then:
+# read the key, or copy only what the group needs, then:
 unset WORKBENCH_FACILITATOR
 ```
 
+The facilitator key lives here, not in the learner repo. `boost-authentication-service/docs/FACILITATOR_KEY.md`
+is a pointer stub, and `reference_guard.py` guards that path too — an agent listing `docs/`
+during the session finds nothing usable. (The build instructions place the key at the `docs/`
+path; keeping the content here is the one deviation, and it is what §13's "answer material is
+never exposed to a normal session" actually requires.)
+
 | Path | Recovers | Restore to |
 |---|---|---|
+| `FACILITATOR_KEY.md` | the facilitator's own copy | nowhere — read it here, with the env var set |
 | `stage1-context/target-pass-proxy.context.md` | Stage 1 | `.claude/context/target-pass-proxy.context.md` |
 | `stage2-spec/retrieve-payer-auth.spec.md` + `.status.json` | Stage 2 | `boost-authentication-service/specs/` |
 | `stage3-plan/issues.json`, `plan.md` | Stage 3 | `boost-authentication-service/issues.json`, `docs/plans/plan.md` |
@@ -37,6 +44,7 @@ run.
 
 ```bash
 export WORKBENCH_FACILITATOR=1
+WORKSPACE="$(cd "$(dirname "$0")/../.." && pwd)"   # or just: WORKSPACE=/path/to/lab2-payer-auth
 cd "$WORKSPACE/.claude/reference/stage6-solution/boost-authentication-service"
 find src -type f -name '*.java' -exec cp {} "$WORKSPACE/boost-authentication-service/"{} \;
 cd "$WORKSPACE/.claude/reference/stage6-solution/boost-order-processing"

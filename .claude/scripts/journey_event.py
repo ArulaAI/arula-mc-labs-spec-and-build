@@ -8,6 +8,10 @@ seven stage boundaries are deterministic, gradeable evidence rather than prose i
 
 Usage:
   python3 .claude/scripts/journey_event.py hand-off --stage 3 --name "Plan: spec to issues"
+
+Runnable from anywhere in the workspace: the workspace root is resolved from `.claude/lab.json`,
+so a hand-off recorded while the shell happens to sit inside one of the owned repos still lands
+in the single workspace-root journey the grader reads.
 """
 import argparse
 import json
@@ -15,7 +19,22 @@ import os
 import time
 from pathlib import Path
 
-JOURNEY_DIR = Path(os.environ.get("WORKBENCH_JOURNEY_DIR", "journey"))
+
+def workspace_root() -> Path:
+    """The directory holding `.claude/lab.json` — the Claude Code project root for this lab."""
+    explicit = os.environ.get("CLAUDE_PROJECT_DIR")
+    if explicit and (Path(explicit) / ".claude" / "lab.json").exists():
+        return Path(explicit)
+    for candidate in [Path.cwd(), *Path.cwd().parents]:
+        if (candidate / ".claude" / "lab.json").exists():
+            return candidate
+    # Last resort: this script lives at <root>/.claude/scripts/journey_event.py
+    return Path(__file__).resolve().parents[2]
+
+
+def journey_dir() -> Path:
+    override = os.environ.get("WORKBENCH_JOURNEY_DIR")
+    return Path(override) if override else workspace_root() / "journey"
 
 
 def main() -> None:
@@ -26,7 +45,8 @@ def main() -> None:
     args = parser.parse_args()
 
     session = os.environ.get("CLAUDE_SESSION_ID", "lab2-local")
-    JOURNEY_DIR.mkdir(parents=True, exist_ok=True)
+    target = journey_dir()
+    target.mkdir(parents=True, exist_ok=True)
     event = {
         "ts": int(time.time()),
         "event": args.event,
@@ -38,10 +58,10 @@ def main() -> None:
     if args.name:
         event["stage_name"] = args.name
 
-    with (JOURNEY_DIR / f"{session}.jsonl").open("a") as handle:
+    with (target / f"{session}.jsonl").open("a") as handle:
         handle.write(json.dumps(event) + "\n")
 
-    print(json.dumps({"recorded": event}))
+    print(json.dumps({"recorded": event, "journey": str(target)}))
 
 
 if __name__ == "__main__":

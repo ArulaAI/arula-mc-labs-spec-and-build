@@ -57,9 +57,14 @@ PAN = re.compile(
     r"|6(?:011|5[0-9]{2})[0-9]{12})\b")
 SENSITIVE_LITERALS = ("AAABBJg0VhI0VniQEjRWAAAAAAA=", "CUST-77301")
 
+# The canonical name for the test that encodes AC-INCOMPLETE. It is a convention, not a
+# requirement: the check below finds the test by what it asserts, so a learner who names it
+# something else is graded on behaviour, not on a filename.
 BILLABLE_TEST = "NoSecondAuthenticatePayerCallTest"
-NEVER_ASSERTION = re.compile(
-    r"never\(\)\s*\)\s*\.\s*authenticatePayer|never\(\)\)\.authenticatePayer", re.DOTALL)
+# Matches the Mockito and BDDMockito spellings of "authenticatePayer was never invoked",
+# whitespace-normalised: verify(x, never()).authenticatePayer(...) /
+# then(x).should(never()).authenticatePayer(...)
+NEVER_ASSERTION = re.compile(r"never\s*\(\s*\)[^;]{0,80}?authenticatePayer")
 
 
 # --------------------------------------------------------------------------- helpers
@@ -216,20 +221,31 @@ def check_tdd_log(root: Path, report: Report) -> None:
 
 
 def check_billable_test_present(root: Path, report: Report) -> tuple[bool, Path | None]:
-    candidates = [p for p in java_sources(root / AUTH, "src", "test")
-                  if p.stem == BILLABLE_TEST]
-    if not candidates:
-        report.add("billable-call-constraint-testable", False,
-                   f"{BILLABLE_TEST} does not exist")
+    """Find the test that asserts the billable operation is never invoked, whatever it is called."""
+    asserting = [
+        path for path in java_sources(root / AUTH, "src", "test")
+        if NEVER_ASSERTION.search(re.sub(r"\s+", " ", path.read_text(errors="replace")))
+    ]
+    if not asserting:
+        named = [p for p in java_sources(root / AUTH, "src", "test") if p.stem == BILLABLE_TEST]
+        report.add(
+            "billable-call-constraint-testable", False,
+            f"no test asserts never().authenticatePayer "
+            f"({BILLABLE_TEST} present but not asserting it)" if named
+            else "no test asserts that authenticatePayer is never invoked "
+                 f"(convention: {BILLABLE_TEST})",
+        )
         return False, None
-    source = candidates[0].read_text(errors="replace")
-    asserts_never = bool(NEVER_ASSERTION.search(source.replace("\n", " ")))
+
+    # Prefer the canonical name when several tests assert it, so the probe is stable.
+    chosen = next((p for p in asserting if p.stem == BILLABLE_TEST), asserting[0])
+    note = "" if chosen.stem == BILLABLE_TEST else f" (convention name is {BILLABLE_TEST})"
     report.add(
-        "billable-call-constraint-testable",
-        asserts_never,
-        f"{BILLABLE_TEST} present; asserts never().authenticatePayer: {asserts_never}",
+        "billable-call-constraint-testable", True,
+        f"{chosen.stem} asserts never().authenticatePayer{note}; "
+        f"{len(asserting)} test class(es) assert it",
     )
-    return asserts_never, candidates[0]
+    return True, chosen
 
 
 def check_static_no_reauthentication(root: Path, report: Report) -> None:
@@ -321,10 +337,23 @@ def check_pr_artifact(root: Path, report: Report) -> None:
                f"{PR_ARTIFACT} present" if exists else f"{PR_ARTIFACT} not written")
 
 
+def journey_files(root: Path) -> list[Path]:
+    """Every journey file in the workspace.
+
+    The plugin's journey hook writes `journey/` relative to the process working directory, so a
+    session that ran commands inside an owned repo leaves events in `<repo>/journey/` as well as
+    the workspace-root `journey/`. Grading reads all of them (Workbench_Issues_To_Address.md
+    item 1 / L2-9).
+    """
+    found = set(glob.glob(str(root / "journey" / "*.jsonl")))
+    found.update(glob.glob(str(root / "*" / "journey" / "*.jsonl")))
+    return [Path(p) for p in sorted(found)]
+
+
 def check_no_gh(root: Path, report: Report) -> None:
     haystack = ""
-    for path in sorted(glob.glob(str(root / "journey" / "*.jsonl"))):
-        haystack += Path(path).read_text(errors="replace")
+    for path in journey_files(root):
+        haystack += path.read_text(errors="replace")
     for rel in (f"{AUTH}/docs/workflow-tracker.md", PR_ARTIFACT):
         haystack += read(root, rel) or ""
     calls = re.findall(r"gh (?:issue|pr) create", haystack)
@@ -335,9 +364,9 @@ def check_no_gh(root: Path, report: Report) -> None:
 
 def check_journey(root: Path, report: Report) -> None:
     events = []
-    files = sorted(glob.glob(str(root / "journey" / "*.jsonl")))
+    files = journey_files(root)
     for path in files:
-        for line in Path(path).read_text(errors="replace").splitlines():
+        for line in path.read_text(errors="replace").splitlines():
             line = line.strip()
             if not line:
                 continue
@@ -368,7 +397,7 @@ def check_journey(root: Path, report: Report) -> None:
     )
 
 
-def check_builds_and_behaviour(root: Path, report: Report, billable_test_ok: bool) -> None:
+def check_builds_and_behaviour(root: Path, report: Report, billable_test: Path | None) -> None:
     auth_repo = root / AUTH
     orders_repo = root / ORDERS
 
@@ -385,10 +414,11 @@ def check_builds_and_behaviour(root: Path, report: Report, billable_test_ok: boo
     auth_results = surefire_results(auth_repo)
     orders_results = surefire_results(orders_repo)
 
+    test_name = billable_test.stem if billable_test else BILLABLE_TEST
     report.add(
         "billable-call-test-green",
-        billable_test_ok and green(auth_results, BILLABLE_TEST),
-        f"{BILLABLE_TEST}: {auth_results.get(BILLABLE_TEST, 'not run')}",
+        billable_test is not None and green(auth_results, test_name),
+        f"{test_name}: {auth_results.get(test_name, 'not run')}",
     )
     report.add(
         "consumer-contract-holds",
@@ -401,8 +431,9 @@ def check_anti_gaming(root: Path, report: Report, billable_test: Path | None) ->
     """Apply the wrong implementation to a temp copy; the learner's test must FAIL on it."""
     if billable_test is None:
         report.add("anti-gaming-probe", False,
-                   f"{BILLABLE_TEST} is absent — nothing to probe")
+                   "no test asserts the billable call is never invoked — nothing to probe")
         return
+    test_name = billable_test.stem
 
     reference = root / ".claude/reference"
     patch = reference / "trap-wrong-impl.patch"
@@ -428,14 +459,14 @@ def check_anti_gaming(root: Path, report: Report, billable_test: Path | None) ->
                        f"could not apply trap-wrong-impl.patch: {applied.stderr.strip()[:200]}")
             return
 
-        probe = run_maven(work, "test", extra=[f"-Dtest={BILLABLE_TEST}", "-DfailIfNoTests=false"])
+        probe = run_maven(work, "test", extra=[f"-Dtest={test_name}", "-DfailIfNoTests=false"])
         failed_as_expected = probe.returncode != 0
         report.add(
             "anti-gaming-probe",
             failed_as_expected,
-            f"{BILLABLE_TEST} fails against the re-introduced billable call — the test bites"
+            f"{test_name} fails against the re-introduced billable call — the test bites"
             if failed_as_expected
-            else f"{BILLABLE_TEST} PASSED against a known-wrong implementation: it does not "
+            else f"{test_name} PASSED against a known-wrong implementation: it does not "
                  f"detect the second billable call",
         )
 
@@ -448,10 +479,10 @@ def grade(root: Path) -> Report:
     check_spec(root, report)
     check_issues(root, report)
     check_tdd_log(root, report)
-    billable_ok, billable_test = check_billable_test_present(root, report)
+    _, billable_test = check_billable_test_present(root, report)
     check_static_no_reauthentication(root, report)
     check_no_scope_expansion(root, report)
-    check_builds_and_behaviour(root, report, billable_ok)
+    check_builds_and_behaviour(root, report, billable_test)
     check_log_sink(root, report)
     check_pr_artifact(root, report)
     check_no_gh(root, report)

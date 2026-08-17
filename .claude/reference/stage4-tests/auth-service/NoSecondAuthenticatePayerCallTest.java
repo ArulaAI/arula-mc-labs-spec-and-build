@@ -35,7 +35,7 @@ import org.springframework.test.web.servlet.MockMvc;
 class NoSecondAuthenticatePayerCallTest {
 
     private static final String STORED_CAVV = "AAABBJg0VhI0VniQEjRWAAAAAAA=";
-    private static final String REFRESHED_CAVV = "AAABCZg1WhJ1WniREjVXAAAAAAA=";
+    private static final String LIVE_AUTHENTICATION_CAVV = "AAABCZg1WhJ1WniREjVXAAAAAAA=";
 
     @Autowired
     private MockMvc mockMvc;
@@ -50,7 +50,7 @@ class NoSecondAuthenticatePayerCallTest {
         when(legacyPassClient.retrieveAuthenticationResult(any(LegacyRetrievalQuery.class)))
                 .thenReturn(record(null));
         when(legacyPassClient.authenticatePayer(any(AuthenticatePayerCommand.class)))
-                .thenReturn(record(REFRESHED_CAVV));
+                .thenReturn(record(LIVE_AUTHENTICATION_CAVV));
 
         mockMvc.perform(get("/merchants/{m}/orders/{o}/authentications/{a}",
                         "MERCH-AU-001", "ORD-1002", "AUTH-9002")
