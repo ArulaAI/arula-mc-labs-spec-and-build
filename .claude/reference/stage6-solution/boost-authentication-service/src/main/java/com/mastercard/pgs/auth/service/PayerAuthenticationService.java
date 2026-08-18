@@ -3,7 +3,6 @@ package com.mastercard.pgs.auth.service;
 import com.mastercard.pgs.auth.client.LegacyAuthenticationRecord;
 import com.mastercard.pgs.auth.client.LegacyPassClient;
 import com.mastercard.pgs.auth.client.LegacyRetrievalQuery;
-import com.mastercard.pgs.auth.config.TracingHeaders;
 import com.mastercard.pgs.auth.domain.PayerAuthenticationWithOrderDetails;
 import com.mastercard.pgs.auth.mapper.LegacyResponseMapper;
 import com.mastercard.pgs.auth.security.CallerAuthorization;
@@ -53,7 +52,7 @@ public class PayerAuthenticationService {
 
         LegacyRetrievalQuery query = new LegacyRetrievalQuery(
                 merchantWsapiId, orderWsapiId, authenticationTransactionWsapiId,
-                correlationId(tracingHeaders));
+                tracingHeaders);
 
         LegacyAuthenticationRecord stored = legacyPassClient.retrieveAuthenticationResult(query);
         if (stored == null || !INTERNAL_ORIGIN.equals(stored.authenticationOrigin())) {
@@ -76,15 +75,5 @@ public class PayerAuthenticationService {
         if (value == null || !IDENTIFIER.matcher(value).matches()) {
             throw new MalformedRequestException(name + " is malformed");
         }
-    }
-
-    private static String correlationId(Map<String, String> tracingHeaders) {
-        if (tracingHeaders == null) {
-            return null;
-        }
-        String correlationId = tracingHeaders.get(TracingHeaders.MC_CORRELATION_ID);
-        return correlationId != null
-                ? correlationId
-                : tracingHeaders.get(TracingHeaders.CLIENT_CORRELATION_ID);
     }
 }

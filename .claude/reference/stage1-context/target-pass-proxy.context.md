@@ -30,17 +30,18 @@ merchant + order + authentication transaction. There is no partial lookup: an or
 or an authentication transaction id on its own, matches nothing. (The wider platform exposes
 those narrower lookups elsewhere; this retrieval edge does not.)
 
-**Correlation id.** The caller may pass its own correlation id with the lookup for tracing. It is
-not part of the key and it does not change what comes back. The `correlationId` **on the returned
-record** is a different value: it is the correlation id under which the legacy platform persisted
-that authentication response, and it is returned exactly as stored.
+**Tracing headers.** The caller may pass its own inbound tracing context (every header named in
+`.../config/TracingHeaders.java` — correlation id and the rest) alongside the lookup, for tracing
+only. None of it is part of the key and none of it changes what comes back. The `correlationId`
+**on the returned record** is a different value entirely: it is the correlation id under which the
+legacy platform persisted that authentication response, and it is returned exactly as stored.
 
 ## Request/response contracts
 
-`retrieveAuthenticationResult(merchantWsapiId, orderWsapiId, authenticationTransactionWsapiId, correlationId)`
+`retrieveAuthenticationResult(merchantWsapiId, orderWsapiId, authenticationTransactionWsapiId, tracingHeaders)`
 returns one stored record, or **nothing** when no record matches (there is no "empty result"
-object — absence is absence). The first three arguments are the key; `correlationId` is the
-caller's tracing id and may be null.
+object — absence is absence). The first three arguments are the key; `tracingHeaders` carries the
+caller's inbound tracing context and may be empty or null.
 
 Stored record shape:
 
