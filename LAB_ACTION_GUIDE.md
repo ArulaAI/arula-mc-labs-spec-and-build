@@ -49,7 +49,7 @@ reached from this path. The behaviour you are building toward:
 - Never log CAVV, PAN, PII, requests, responses or stored records.
 
 For component boundaries, the full request flow, trust boundaries and repository ownership, see
-[`ARCHITECTURE.md`](../ARCHITECTURE.md) at the workspace root.
+[`ARCHITECTURE.md`](ARCHITECTURE.md).
 
 **Your role:** the engineer finishing the inherited draft.
 
@@ -74,7 +74,7 @@ plugin** first.
 Open Claude Code **once, at the workspace root** — the directory that contains both owned repos:
 
 ```
-arula-mc-labs-spec-and-build/                  <- open Claude Code HERE
+arula-mc-labs-spec-and-build/     <- open Claude Code HERE
   .claude/
     context/                      the compressed context for the legacy edge (ships with the repo)
     reference/                    facilitator answer material (guarded — you cannot read it)
@@ -180,6 +180,14 @@ workaround once a room has started: the `superpowers` companion plugin is instal
   uninstall/reinstall a plugin, or restart Claude Code, for any reason, **re-run `/lab`
   afterward** — grading looks for a session-start event, and it won't find one from before the
   restart. Skipping this costs real points for no actual gap in your work.
+
+---
+
+**A note on paths.** This guide lives at the workspace root, but the feature's artifacts belong to
+the producer repo. Where a stage prompt says `docs/...`, `specs/...` or `issues.json`, it means
+inside `boost-authentication-service/` — that is where the grader looks. Anything starting
+`.claude/` or `journey/` is at the workspace root. The table under
+[Where each artifact goes](#where-each-artifact-goes) spells every path out in full.
 
 ---
 
@@ -640,13 +648,21 @@ check still failing is not actually a pass of that check's lesson.
 
 ## See also
 
-- [`CLAUDE.md`](./CLAUDE.md) — repo-tier engineering standards for `boost-authentication-service`
-- [`specs/NON_NEGOTIABLES.md`](./specs/NON_NEGOTIABLES.md) — the seven rules that outrank
-  convenience in this repo; cited by name throughout Stages 2, 5 and 6
-- [`../boost-order-processing/CLAUDE.md`](../boost-order-processing/CLAUDE.md) — the consumer's
-  own standards, including why it never reimplements the producer's behaviour
-- [`docs/FACILITATOR_KEY.md`](./docs/FACILITATOR_KEY.md) — facilitator answer key (not for
-  participants; the real content is guarded and this file just says where)
-- [`src/main/resources/openapi/payer-authentication-v1.yaml`](./src/main/resources/openapi/payer-authentication-v1.yaml) —
-  the shared contract; identical in both repos, and `ContractConsumerTest` fails if that stops
-  being true
+- [`ARCHITECTURE.md`](ARCHITECTURE.md) — system context, component boundaries, request flow,
+  trust boundaries and the verification layers
+- [`.claude/context/target-pass-proxy.context.md`](.claude/context/target-pass-proxy.context.md) —
+  the only authority on the legacy edge; audited in Stage 1
+- [`boost-authentication-service/specs/NON_NEGOTIABLES.md`](boost-authentication-service/specs/NON_NEGOTIABLES.md) —
+  the seven rules that outrank convenience; cited by name throughout Stages 2, 5 and 6
+- [`boost-authentication-service/specs/retrieve-payer-auth.spec.md`](boost-authentication-service/specs/retrieve-payer-auth.spec.md) —
+  ships **incomplete**; you complete and validate it in Stage 2
+- [`boost-authentication-service/CLAUDE.md`](boost-authentication-service/CLAUDE.md) — producer
+  engineering standards
+- [`boost-order-processing/CLAUDE.md`](boost-order-processing/CLAUDE.md) — consumer standards,
+  including why it never reimplements the producer's behaviour
+- [`boost-authentication-service/src/main/resources/openapi/payer-authentication-v1.yaml`](boost-authentication-service/src/main/resources/openapi/payer-authentication-v1.yaml) —
+  the shared contract; byte-identical in both repos, and `ContractConsumerTest` fails if that
+  stops being true
+- [`boost-authentication-service/docs/FACILITATOR_KEY.md`](boost-authentication-service/docs/FACILITATOR_KEY.md) —
+  facilitator answer key (not for participants; the real content is guarded and this file just
+  says where)

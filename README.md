@@ -26,7 +26,7 @@ arula-mc-labs-spec-and-build/
   README.md                                this file
 ```
 
-**Start here:** `boost-authentication-service/LAB_ACTION_GUIDE.md`
+**Start here:** [`LAB_ACTION_GUIDE.md`](LAB_ACTION_GUIDE.md)
 
 `target-pass-proxy`, the legacy Target/PASS edge, is deliberately **not** in this workspace. It is
 represented by a compressed context artifact that ships with this repo at
@@ -62,8 +62,8 @@ Both routes below produce exactly the architecture in the table above.
 parts; a single idempotent script then gives each owned repo its own git history:
 
 ```bash
-git clone <this-repo> lab2-payer-auth
-cd lab2-payer-auth
+git clone <this-repo>
+cd arula-mc-labs-spec-and-build
 .claude/scripts/bootstrap_workspace.sh
 ```
 
@@ -71,8 +71,8 @@ cd lab2-payer-auth
 scaffold and each owned repo to its own remote, then have participants clone them side by side:
 
 ```bash
-git clone <workspace-remote> lab2-payer-auth
-cd lab2-payer-auth
+git clone <workspace-remote> arula-mc-labs-spec-and-build
+cd arula-mc-labs-spec-and-build
 git clone <auth-service-remote> boost-authentication-service
 git clone <order-processing-remote> boost-order-processing
 ```

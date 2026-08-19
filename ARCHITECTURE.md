@@ -6,7 +6,7 @@ repositories and the legacy edge.
 **This describes the target state, not the starter.** The repository you clone ships an
 unfinished draft — the mapping, the tracing headers and the error semantics are deliberately
 incomplete, and the spec that defines them is not yet validated. Use this document to understand
-where you are heading; use [`LAB_ACTION_GUIDE.md`](boost-authentication-service/LAB_ACTION_GUIDE.md)
+where you are heading; use [`LAB_ACTION_GUIDE.md`](LAB_ACTION_GUIDE.md)
 to get there.
 
 ---
@@ -347,7 +347,7 @@ the PR gate are enforced as `PreToolUse` hooks, not by Maven.
 
 ## References
 
-- [Lab action guide](boost-authentication-service/LAB_ACTION_GUIDE.md) — the stage-by-stage script
+- [Lab action guide](LAB_ACTION_GUIDE.md) — the stage-by-stage script
 - [Compressed Target/PASS context](.claude/context/target-pass-proxy.context.md) — the only
   authority on the legacy edge
 - [Feature non-negotiables](boost-authentication-service/specs/NON_NEGOTIABLES.md)

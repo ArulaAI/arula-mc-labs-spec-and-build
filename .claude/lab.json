@@ -5,7 +5,7 @@
   "level": 200,
   "duration_minutes": 120,
   "rubric": ".claude/rubrics/lab-2.yaml",
-  "action_guide": "boost-authentication-service/LAB_ACTION_GUIDE.md",
+  "action_guide": "LAB_ACTION_GUIDE.md",
   "repos": {
     "owned": ["boost-authentication-service", "boost-order-processing"],
     "compressed_context_only": ["target-pass-proxy"]

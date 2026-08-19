@@ -44,7 +44,7 @@ run.
 
 ```bash
 export WORKBENCH_FACILITATOR=1
-WORKSPACE="$(cd "$(dirname "$0")/../.." && pwd)"   # or just: WORKSPACE=/path/to/lab2-payer-auth
+WORKSPACE="$(cd "$(dirname "$0")/../.." && pwd)"   # or just: WORKSPACE=/path/to/arula-mc-labs-spec-and-build
 cd "$WORKSPACE/.claude/reference/stage6-solution/boost-authentication-service"
 find src -type f -name '*.java' -exec cp {} "$WORKSPACE/boost-authentication-service/"{} \;
 cd "$WORKSPACE/.claude/reference/stage6-solution/boost-order-processing"
