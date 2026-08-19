@@ -74,7 +74,7 @@ plugin** first.
 Open Claude Code **once, at the workspace root** — the directory that contains both owned repos:
 
 ```
-lab2-payer-auth/                  <- open Claude Code HERE
+arula-mc-labs-spec-and-build/                  <- open Claude Code HERE
   .claude/
     context/                      the compressed context for the legacy edge (ships with the repo)
     reference/                    facilitator answer material (guarded — you cannot read it)
