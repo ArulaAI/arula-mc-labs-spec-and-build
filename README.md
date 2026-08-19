@@ -16,23 +16,26 @@ lab2-payer-auth/
     hooks/reference_guard.py               protects the answer material
     hooks/pr_gate_guard.py                 blocks the PR artifact while gates are red
     hooks/pan_gate.py                      blocks a write that would add a PAN or secret
-    context/                               the Stage 1 compressed context lands here
+    context/                               compressed context for the legacy edge (ships; audited in Stage 1)
     reference/                             facilitator answer + recovery states, incl. the
                                            facilitator key (guarded by reference_guard.py)
   boost-authentication-service/            owned repo — the producer (port 8081)
   boost-order-processing/                  owned repo — the consumer (port 8080)
   journey/                                 created at runtime by the plugin's journey hooks
+  ARCHITECTURE.md                          the intended architecture, in nine views
+  README.md                                this file
 ```
 
 **Start here:** `boost-authentication-service/LAB_ACTION_GUIDE.md`
 
 `target-pass-proxy`, the legacy Target/PASS edge, is deliberately **not** in this workspace. It is
-represented by a compressed context artifact you produce in Stage 1.
+represented by a compressed context artifact that ships with this repo at
+`.claude/context/target-pass-proxy.context.md`, which you audit in Stage 1.
 
 `mvn test` is green in both owned repos on a fresh clone.
 
-Companion document: `Workbench_Issues_To_Address.md` — plugin gaps this lab works around, with
-the lab-local mitigation for each.
+**Architecture:** [`ARCHITECTURE.md`](ARCHITECTURE.md) — system context, component boundaries,
+request flow, trust boundaries and the verification layers.
 
 ## Distribution
 

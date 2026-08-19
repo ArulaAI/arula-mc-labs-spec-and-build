@@ -61,10 +61,15 @@ SENSITIVE_LITERALS = ("AAABBJg0VhI0VniQEjRWAAAAAAA=", "CUST-77301")
 # requirement: the check below finds the test by what it asserts, so a learner who names it
 # something else is graded on behaviour, not on a filename.
 BILLABLE_TEST = "NoSecondAuthenticatePayerCallTest"
-# Matches the Mockito and BDDMockito spellings of "authenticatePayer was never invoked",
-# whitespace-normalised: verify(x, never()).authenticatePayer(...) /
-# then(x).should(never()).authenticatePayer(...)
-NEVER_ASSERTION = re.compile(r"never\s*\(\s*\)[^;]{0,80}?authenticatePayer")
+# Two legitimate ways to prove "the billable operation was not invoked", both of which this lab
+# ships reference material for. Grade the proof, not the technique:
+#   1. Mockito/BDDMockito matcher — verify(client, never()).authenticatePayer(...)
+#   2. The stub's own call counter  — assertThat(stub.authenticatePayerCallCount()).isZero()
+NEVER_ASSERTION = re.compile(
+    r"never\s*\(\s*\)[^;]{0,80}?authenticatePayer"
+    r"|authenticatePayerCallCount\s*\(\s*\)[^;]{0,120}?(?:isZero|isEqualTo\s*\(\s*0\s*\)"
+    r"|assertEquals\s*\(\s*0)"
+    r"|(?:isZero|isEqualTo\s*\(\s*0\s*\)|assertEquals\s*\(\s*0)[^;]{0,120}?authenticatePayerCallCount")
 
 
 # --------------------------------------------------------------------------- helpers
@@ -230,7 +235,7 @@ def check_billable_test_present(root: Path, report: Report) -> tuple[bool, Path 
         named = [p for p in java_sources(root / AUTH, "src", "test") if p.stem == BILLABLE_TEST]
         report.add(
             "billable-call-constraint-testable", False,
-            f"no test asserts never().authenticatePayer "
+            f"no test asserts that authenticatePayer was not invoked "
             f"({BILLABLE_TEST} present but not asserting it)" if named
             else "no test asserts that authenticatePayer is never invoked "
                  f"(convention: {BILLABLE_TEST})",
@@ -242,7 +247,7 @@ def check_billable_test_present(root: Path, report: Report) -> tuple[bool, Path 
     note = "" if chosen.stem == BILLABLE_TEST else f" (convention name is {BILLABLE_TEST})"
     report.add(
         "billable-call-constraint-testable", True,
-        f"{chosen.stem} asserts never().authenticatePayer{note}; "
+        f"{chosen.stem} asserts the billable call was not invoked{note}; "
         f"{len(asserting)} test class(es) assert it",
     )
     return True, chosen
@@ -427,6 +432,68 @@ def check_builds_and_behaviour(root: Path, report: Report, billable_test: Path |
     )
 
 
+SCOPE_PROBE_TEST = '''package com.mastercard.pgs.auth;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import com.mastercard.pgs.auth.security.CallerAuthorization;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.web.servlet.MockMvc;
+
+/** Grader-owned probe for AC-7. Not part of the learner's suite. */
+@SpringBootTest
+@AutoConfigureMockMvc
+class GraderExternalOriginProbeTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Test
+    void externallyAuthenticatedRecordIsNotServed() throws Exception {
+        mockMvc.perform(get("/merchants/{m}/orders/{o}/authentications/{a}",
+                        "MERCH-AU-001", "ORD-1003", "AUTH-9003")
+                        .header(CallerAuthorization.CLIENT_ID_HEADER, "boost-order-processing"))
+                .andExpect(status().isNotFound());
+    }
+}
+'''
+
+
+def check_external_origin_refused(root: Path, report: Report) -> None:
+    """AC-7, proved by behaviour rather than by inspecting the learner's code or test names.
+
+    The grader injects its own probe into a temp copy and runs it, so this passes for any correct
+    implementation regardless of how the guard was written or what the learner named their test —
+    and fails when the guard is simply absent, which a static "no external handling was added"
+    check cannot detect.
+    """
+    probe_path = ("src/test/java/com/mastercard/pgs/auth/GraderExternalOriginProbeTest.java")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        work = Path(tmp) / AUTH
+        shutil.copytree(root / AUTH, work,
+                        ignore=shutil.ignore_patterns("target", "logs", ".git"))
+        destination = work / probe_path
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(SCOPE_PROBE_TEST)
+
+        probe = run_maven(work, "test",
+                          extra=["-Dtest=GraderExternalOriginProbeTest", "-DfailIfNoTests=false"])
+        passed = probe.returncode == 0
+        report.add(
+            "external-origin-refused",
+            passed,
+            "an EXTERNAL-origin stored record is refused, not served as if internal (AC-7)"
+            if passed
+            else "AC-7 violated: the EXTERNAL-origin record ORD-1003/AUTH-9003 is not refused — "
+                 "it is served as if it were internally authenticated",
+        )
+
+
 def check_anti_gaming(root: Path, report: Report, billable_test: Path | None) -> None:
     """Apply the wrong implementation to a temp copy; the learner's test must FAIL on it."""
     if billable_test is None:
@@ -482,6 +549,7 @@ def grade(root: Path) -> Report:
     _, billable_test = check_billable_test_present(root, report)
     check_static_no_reauthentication(root, report)
     check_no_scope_expansion(root, report)
+    check_external_origin_refused(root, report)
     check_builds_and_behaviour(root, report, billable_test)
     check_log_sink(root, report)
     check_pr_artifact(root, report)

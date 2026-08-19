@@ -19,6 +19,38 @@ across two repos.
 
 > **Authenticate Payer is a billable event. This API retrieves. It never re-authenticates.**
 
+```mermaid
+flowchart LR
+    OP["boost-order-processing<br/>needs a stored authentication result"]
+    AUTH["boost-authentication-service<br/>read-only retrieval API"]
+    PASS["Target/PASS<br/>legacy system of record"]
+
+    OP -->|"GET result + tracing headers"| AUTH
+    AUTH -->|"retrieveAuthenticationResult"| PASS
+    PASS -->|"stored legacy record"| AUTH
+    AUTH -->|"mapped modern response"| OP
+
+    AUTH -. "NEVER during retrieval" .-> BILLABLE["authenticatePayer<br/>live and billable"]
+
+    classDef danger fill:#fff0f0,stroke:#b42318,color:#7a1010,stroke-width:2px;
+    class BILLABLE danger;
+```
+
+Two repos you own, one legacy platform you cannot see, and one operation on it that must never be
+reached from this path. The behaviour you are building toward:
+
+- Retrieve the stored record exactly once.
+- Return it as stored — including a null CAVV, unchanged.
+- Never call `authenticatePayer` from the retrieval path.
+- Map the legacy record to `PayerAuthenticationWithOrderDetails`.
+- Serve internally-authenticated transactions only.
+- Propagate the tracing headers without logging their values.
+- Return distinct `400`, `403` and `404` errors.
+- Never log CAVV, PAN, PII, requests, responses or stored records.
+
+For component boundaries, the full request flow, trust boundaries and repository ownership, see
+[`ARCHITECTURE.md`](../ARCHITECTURE.md) at the workspace root.
+
 **Your role:** the engineer finishing the inherited draft.
 
 **What you are building:** a read-only proxy that returns
@@ -41,8 +73,20 @@ plugin** first.
 
 Open Claude Code **once, at the workspace root** — the directory that contains both owned repos:
 
+```
+lab2-payer-auth/                  <- open Claude Code HERE
+  .claude/
+    context/                      the compressed context for the legacy edge (ships with the repo)
+    reference/                    facilitator answer material (guarded — you cannot read it)
+    scripts/                      validate_spec.sh · grade_repo.py · bootstrap_workspace.sh
+  boost-authentication-service/   owned repo — the producer, where the work lives
+  boost-order-processing/         owned repo — the consumer
+  journey/                        created at runtime by the plugin's journey hooks
+```
+
 `target-pass-proxy`, the legacy edge, is **not here**. It is represented only by the compressed
-context artifact you produce in Stage 1 — that absence is the point of the stage, not an oversight.
+context artifact that ships in your clone at `.claude/context/target-pass-proxy.context.md` —
+that absence is the premise of the lab, not an oversight.
 
 Do not open a single repo as the project root. The shared `.claude/`, the hooks, and the grader
 all resolve from the workspace root; opening `boost-authentication-service/` directly means none
@@ -121,10 +165,9 @@ and `superpowers@claude-plugins-official`, both `enabled`.
    `/grade` are offered, and `planner`, `pr-reviewer`, `code-to-spec-validator` are listed as
    subagents.
 
-Two go/no-go checks a facilitator confirms **before session day**, because there is no live
-workaround once a room has started: the `superpowers` companion plugin is installed (`spec-craft`
-hard-stops without it), and `repo-context-compressor` is available — or the facilitator is ready
-to hand out the reference compressed context at Stage 1 instead.
+One go/no-go check a facilitator confirms **before session day**, because there is no live
+workaround once a room has started: the `superpowers` companion plugin is installed —
+`spec-craft` hard-stops without it, which would block Stage 2 entirely.
 
 ### Two terms worth fixing now, before they cause confusion mid-session
 
@@ -144,6 +187,8 @@ to hand out the reference compressed context at Stage 1 instead.
 
 - `mvn test` is **green** in both repos.
 - Retrieval of a **complete** stored record works and returns 200.
+- The compressed context for the legacy edge is **already in your clone** at
+  `.claude/context/target-pass-proxy.context.md`.
 - Genuinely unbuilt: the rest of the response mapping, the tracing headers, and the error codes.
 - The spec is **incomplete** and `/build` will refuse to run against it.
 
@@ -159,7 +204,8 @@ to hand out the reference compressed context at Stage 1 instead.
    criteria that a test can be written from.
 2. Why `/build` refuses an unvalidated spec — the gate is structural, not cultural.
 3. **The context-window blind spot.** An agent starts guessing the moment work crosses into a
-   repo it cannot see. `target-pass-proxy` is that repo.
+   repo it cannot see. `target-pass-proxy` is that repo — and the compressed context in
+   `.claude/context/` is the answer to it. Stage 1 is where you decide how far to trust it.
 
 **Commands.** `/lab` · confirm a journey event landed in `journey/` — open the directory and look,
 don't just trust that the command exited without an error.
@@ -175,45 +221,63 @@ instead of the workspace root. Fix before Stage 1; nothing downstream is gradeab
 
 ---
 
-## Stage 1 — Compress the legacy edge (15 min)
+## Stage 1 — Audit the compressed context (15 min)
 
-**Objective.** A usable Tier-1 compressed context for `target-pass-proxy`.
+**Objective.** Know what the legacy edge does — and know which parts of that you can actually
+verify, before you build against any of it.
 
-**Start state.** `.claude/context/` is empty. Nothing in your workspace tells you what the legacy
-edge does.
+**Start state.** `.claude/context/target-pass-proxy.context.md` already exists in your clone. It
+is the Tier-1 compressed context for `target-pass-proxy`: a dense summary of a repository that is
+**not in your workspace and never will be**. It is the only thing you or an agent will have to go
+on for the rest of the lab.
 
-**Surface.** `repo-context-compressor`.
+**Why it ships rather than gets generated.** Compressed context is normally *produced* from a repo
+you have access to. Here you don't have the legacy repo at all — that's the whole premise — so
+there is nothing to compress and no honest way to generate it in-session. Your facilitator will
+cover how these get produced in practice. Your job today is the half that matters more often:
+deciding whether a compressed context you were handed is trustworthy enough to build on.
 
-**Prompt.**
+**Action.** Read the artifact, then audit it. Not everything in it is checkable — that's the point.
 
-> "Generate a compressed context for the `target-pass-proxy` legacy edge for use by
-> `boost-authentication-service`. Include: identity/purpose, the retrieve and authenticatePayer
-> operations, request/response contracts, the legacy→modern field map, the stored-response/TTL
-> behavior, and an explicit DOES / DOES-NOT section stating that the retrieval path must never
-> call authenticatePayer (billable). Write `.claude/context/target-pass-proxy.context.md`. If the
-> `repo-context-compressor` skill is not available, say so explicitly before doing anything else —
-> do not silently fall back to general research."
+1. **Verify what you can.** The producer repo contains `LegacyPassClientStub`, a local stand-in
+   for the legacy edge. Cross-check the context's legacy→modern field map against
+   `LegacyAuthenticationRecord`, and its DOES / DOES-NOT claims against `LegacyPassClient`'s own
+   interface documentation. Do the field names match? Does the interface agree about which
+   operation is billable?
+2. **Name what you cannot.** The stored-response TTL, the source paths, the contract version and
+   generation date — nothing in your workspace can confirm any of these. List them explicitly.
+3. **Ask what would break if a claim were wrong.** If the field map were stale by one field, where
+   would that surface — a compile error, a failing test, or a silently wrong response?
 
-**That last sentence matters.** If the skill isn't installed, the correct move is a **facilitator
-handout** of the reference artifact, not an agent quietly reconstructing something similar from
-whatever source files it can find. A plausible-looking artifact built by ad hoc research is not
-the same thing as disciplined compression, even if it happens to read fine — and if you don't get
-an explicit "the skill isn't available" statement, you have no way to tell which one you got.
+**Prompt** (optional, if you want an agent to do the first pass):
 
-**Artifact.** `.claude/context/target-pass-proxy.context.md`
+> "Audit `.claude/context/target-pass-proxy.context.md` against the code in
+> `boost-authentication-service`. For each claim, say whether it is verifiable from this workspace
+> and whether it matches. List separately the claims that cannot be verified from here at all. Do
+> not change any file."
 
-**Observable.** The artifact names two operations, not one — and says explicitly that one of them
-must never be called from the retrieval path.
+**Artifact.** No new file. This stage produces a shared understanding and a short list, recorded
+in your `/hand-off`.
 
-**Human gate.** Read the DOES / DOES NOT section aloud. Confirm the no-re-call fact is there. You
-will need it in Stage 2, and an agent will need it in Stage 4.
+**Human gate.** Two things, out loud:
 
-**Failure / recovery.** `reference/stage1-context/` — the facilitator restores it.
+- The DOES-NOT statement is present, and it says the retrieval path must never call
+  `authenticatePayer` because it is billable. You will need this in Stage 2, and an agent will
+  need it in Stage 4.
+- At least one claim in the artifact **cannot** be verified from inside this workspace.
 
-**Close the stage.** `/hand-off`
+**The actual lesson.** A compressed context is a *claim* about a system you cannot see. Some of it
+you can check locally; some of it you are simply trusting. That's precisely why its accuracy and
+its freshness stamp are load-bearing — and why a stale one is more dangerous than a missing one,
+because nothing fails loudly when it drifts.
 
-**Invariant.** The compressed context exists and contains every required section, including the
-explicit "DOES NOT call authenticatePayer" statement.
+**Failure / recovery.** If the file is missing or has been edited, restore it from
+`.claude/reference/stage1-context/` (facilitator).
+
+**Close the stage.** `/hand-off` — cite the verified claims and the unverifiable ones.
+
+**Invariant.** The room can state what the legacy edge does, which claims were verified against
+local code, and which are taken on trust.
 
 ---
 
@@ -244,11 +308,17 @@ not an LLM judgment call — which is exactly why `/build` can refuse to proceed
 
 > "/spec Complete `specs/retrieve-payer-auth.spec.md` for Retrieve Payer Authentication Results
 > (`PGSE-88`), bound by `specs/NON_NEGOTIABLES.md` and
-> `.claude/context/target-pass-proxy.context.md`. Add the missing Out-of-scope section
-> (externally-authenticated transactions are out of scope), the 404/403/400 error semantics as
-> distinct acceptance criteria, and replace the vague incomplete-record criterion with a testable
-> one: the service returns the stored result as-is and never invokes the legacy Authenticate
-> Payer operation. Make every acceptance criterion testable."
+> `.claude/context/target-pass-proxy.context.md`. Add:
+>
+> 1. The missing Out-of-scope section — externally-authenticated transactions are out of scope.
+> 2. The 404/403/400 error semantics as distinct acceptance criteria.
+> 3. A testable criterion replacing the vague incomplete-record one: the service returns the
+>    stored result as-is and never invokes the legacy Authenticate Payer operation.
+> 4. A testable criterion for the out-of-scope case: a stored record whose `authenticationOrigin`
+>    is `EXTERNAL` returns 404 with no authentication or order data, and is never served as if it
+>    were internally authenticated.
+>
+> Make every acceptance criterion testable."
 
 `/spec` should propose its changes and ask you to confirm before writing anything — don't wave it
 through without reading what it's proposing to add.
@@ -258,10 +328,17 @@ through without reading what it's proposing to add.
 **Observable.** `spec.status.json` moves `valid:false` → `valid:true`; the missing section and
 the untestable criterion are both gone.
 
-**Human gate — the one that matters in this stage.** Read the finished spec yourself. Confirm the
-billable-call constraint landed as a **testable criterion** — something a test can assert — and
-not as prose in a paragraph. "The service should not re-authenticate unnecessarily" is prose. A
-criterion that says the legacy Authenticate Payer operation is **never invoked** is a test.
+**Human gate — the one that matters in this stage.** Read the finished spec yourself and confirm
+two things landed as **testable criteria**, not as prose in a paragraph:
+
+- The billable-call constraint. "The service should not re-authenticate unnecessarily" is prose.
+  "The legacy Authenticate Payer operation is **never invoked**" is a test.
+- The out-of-scope constraint. "Externally-authenticated transactions are out of scope" is prose —
+  it says nothing a test can assert. "An `EXTERNAL` record **returns 404 with no data**" is a test.
+
+A constraint with no observable is the worst of both worlds: doing nothing violates it, and doing
+something feels like inventing behaviour. Pin the observable here and Stage 4 has something to
+build to.
 
 **Failure / recovery.** `/build` will refuse until the spec is READY. Recovery:
 `reference/stage2-spec/`.
@@ -318,8 +395,14 @@ acceptance criteria** — `sdet-architect` arrives in Lab 3.
 
 > "Continue `/build` per issue from `issues.json`. For each issue: write the failing tests first
 > from its own acceptance criteria, then make them pass. Complete `LegacyResponseMapper` and the
-> consumer wiring, honour the tracing headers and 404/403/400. Do not implement
-> externally-authenticated handling. Do not run any `gh` command."
+> consumer wiring, honour the tracing headers and 404/403/400. Do not build support for
+> externally-authenticated transactions — no external provider, no alternate authentication path.
+> Do not run any `gh` command."
+
+**"Out of scope" means don't build support for it — not don't guard against it.** Refusing to
+serve an `EXTERNAL` record (AC-7) is the *absence* of external-auth handling, so that guard is
+required, not scope creep. Building an external provider, an alternate auth path, or a second
+retrieval flow is the scope creep. Get this backwards and Stage 5's validator will catch it.
 
 **Artifacts.** implementation in both repos · `docs/tdd-log.md` (one row per issue: the test you
 wrote first, the RED you observed, the change that turned it green)
@@ -381,17 +464,18 @@ here instead** — that is the lab working correctly, not a validator that misse
 stage still independently confirms every other criterion (scope, error codes, logging) regardless
 of when the billable-call fix landed.
 
-**On FAIL.** Go back to Stage 4 and make the **smallest** fix that satisfies the criterion. Add
-the test that proves it — a test asserting the criterion, written before the fix. Then
-re-validate.
+**On FAIL.** Disposition every finding using **FIX / REJECT / RECORD** (see
+[Handling findings](#handling-findings-fix--reject--record) below). For a FIX: go back to Stage 4,
+make the **smallest** change that satisfies the criterion, and write the test that proves it
+*before* the fix. Then re-validate.
 
 For the billable-call criterion (AC-3 / AC-INCOMPLETE) the house convention is to name that test
-`NoSecondAuthenticatePayerCallTest`, and to assert the negative directly:
-`verify(legacyPassClient, never()).authenticatePayer(any())`. The name is a convention — grading
-looks for the assertion, not the filename — but a shared name makes the trail readable to the
-next person.
+`NoSecondAuthenticatePayerCallTest`. Assert the negative directly — either
+`verify(legacyPassClient, never()).authenticatePayer(any())` or
+`assertThat(stub.authenticatePayerCallCount()).isZero()`. Both are accepted; grading looks for the
+assertion, not the filename or the technique.
 
-**Human gate.** Every FAIL is either fixed or explicitly accepted with a recorded reason.
+**Human gate.** Every finding has a recorded disposition — none silently dropped.
 
 **Failure / recovery.** `reference/stage5-validation/`.
 
@@ -414,15 +498,16 @@ next person.
    > `specs/NON_NEGOTIABLES.md`. You are not the author. Return APPROVE / REQUEST CHANGES /
    > BLOCKER with `file:line` findings."
 
-   **Expect more than one round.** A fresh reviewer that finds a real gap and a fixed version that
-   still doesn't fully close it is the review working as designed, not something going wrong —
-   this is ordinary code review, not a single pass-fail check. Each round must be dispatched with
-   genuinely fresh context (a new invocation that hasn't seen your fix attempt), not the same
-   conversation continuing to argue with itself. If a finding cites specific text from
-   `NON_NEGOTIABLES.md` or the spec, go read that text yourself before deciding whether to push
-   back or fix it — don't take either the reviewer's or your own first read as final. Two, maybe
-   three rounds is a normal amount of back-and-forth for a real gap; if you're well past that and
-   still blocked on the same point, flag it to your facilitator rather than guessing again.
+   Disposition every finding with **FIX / REJECT / RECORD** (see
+   [Handling findings](#handling-findings-fix--reject--record)) before you re-dispatch. Do not
+   apply every warning reflexively, and do not dismiss one because you disagree — read the text it
+   cites, then decide.
+
+   **Expect more than one round.** A fresh reviewer that finds a real gap, and a fix that doesn't
+   fully close it, is ordinary code review — not a sign something is wrong. Each round must be a
+   genuinely new invocation that hasn't seen your fix attempt, not the same conversation arguing
+   with itself. Two or three rounds is normal for a real gap; if you're past that and still stuck
+   on the same point, flag it to your facilitator rather than guessing again.
 
 2. **Make the PR gate fire — on purpose.** Do this before you close the gates, and make it
    deterministic rather than hoping something is still broken:
@@ -467,6 +552,32 @@ issue or PR created.
 
 ---
 
+## Handling findings: FIX / REJECT / RECORD
+
+Stages 5 and 6 both produce findings — from the validator, then from the reviewer. Not every
+finding deserves a code change, and "the reviewer said so" is not a reason on its own. Give each
+one exactly one disposition, and **cite the specific text you're relying on**: an acceptance
+criterion, a line in `specs/NON_NEGOTIABLES.md`, or a rule in `rules/coding-standards.md`.
+
+| Disposition | Use when | What you do |
+|---|---|---|
+| **FIX** | The finding cites binding text, and the code genuinely violates it. | Make the smallest change that satisfies it. Write the failing test first where the finding is behavioural. |
+| **REJECT** | The finding is wrong, or cites text that doesn't say what it's claimed to say. | Quote the actual text and explain why it doesn't apply. Change nothing. |
+| **RECORD** | The finding names a real gap, but no spec, contract or rule defines what the behaviour should be. | Write it down as a named gap. **Do not invent the behaviour** — `NON_NEGOTIABLES.md` §7 forbids picking a default where the spec is silent, and inventing new handling breaks that rule just as much as silently defaulting would. |
+
+Write every disposition into `docs/validation-log.md`, with its citation. That file is the record
+of what you decided and why — it is what makes a FAIL you accepted defensible rather than ignored.
+
+**Do not convert a FAIL to a PASS because you decided not to act on it.** An accepted FAIL stays a
+FAIL, with a recorded reason. That distinction is the whole point of keeping the log.
+
+**A worked example, from a real run:** a reviewer raised the unmasked PAN in the response body as
+a BLOCKER. Checked against the actual cited text, it was a **REJECT** — AC-1 requires the complete
+response, the shared OpenAPI contract declares `cardNumber` required, and the "no PAN" rule in
+`NON_NEGOTIABLES.md` §1 and AC-2 is scoped to *logs, error messages and metrics*, not the
+response body. Masking it would have broken a contract two repos share, to satisfy a rule that
+never applied. The citation is what settled it.
+
 ## Where each artifact goes
 
 Paths are what the grader and the gates look at. Everything below is relative to the workspace
@@ -474,7 +585,7 @@ root.
 
 | Stage | Artifact |
 |---|---|
-| 1 | `.claude/context/target-pass-proxy.context.md` |
+| 1 | no new file — the audit's findings are recorded in the stage's `/hand-off` |
 | 2 | `boost-authentication-service/specs/retrieve-payer-auth.spec.md` + `…spec.status.json` |
 | 3 | `boost-authentication-service/issues.json` · `boost-authentication-service/docs/plans/plan.md` |
 | 4 | tests in each repo's `src/test/java/…` · `boost-authentication-service/docs/tdd-log.md` |
@@ -498,7 +609,7 @@ mid-session.
 python3 .claude/scripts/grade_repo.py        # from the workspace root
 ```
 
-Twenty deterministic checks on content and behaviour, not file existence — the compressed context
+Twenty-one deterministic checks on content and behaviour, not file existence — the compressed context
 is complete, the spec's gaps are closed, the billable-call constraint is testable *and* green, no
 path from a retrieval reaches the provider, nothing sensitive is in the log sink, the contract
 holds across the repo boundary, and the seven stage boundaries are in the journey. It also runs

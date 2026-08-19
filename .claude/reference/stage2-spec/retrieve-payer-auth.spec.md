@@ -34,7 +34,17 @@ Out of scope — do not implement:
 
 - **Externally authenticated transactions.** Only transactions the gateway authenticated
   internally are served. An externally authenticated stored record is not returned as if it were
-  internally authenticated.
+  internally authenticated — it is refused, per AC-7.
+
+  *Refused with 404, not a distinct status: this API does not confirm the existence of records
+  outside its scope. From the caller's perspective there is no in-scope result, which is the same
+  observable state as no record at all. 404 is also already declared in the shared OpenAPI
+  contract, so refusing this way needs no contract change.*
+
+  Refusing to serve an `EXTERNAL` record is **not** "implementing externally-authenticated
+  handling" — it is the absence of it. What stays out of scope is building support for
+  externally-authenticated transactions: no external provider, no alternate authentication path,
+  no separate retrieval flow.
 - **Re-running or re-triggering authentication.** Authenticate Payer is a billable event. This
   API is read-only retrieval and must never cause a second authentication.
 - Caching the retrieved result, retrying the legacy retrieval, or validating the format of the
@@ -104,8 +114,9 @@ AC-5: Given an unauthorized or unidentified caller, when the endpoint is called,
 AC-6: Given a malformed identifier in the request path, when the endpoint is called, then it
 returns 400 with a structured error.
 
-AC-7: Given an externally authenticated transaction, when the endpoint is called, then it is
-treated as out of scope and returns 404 — it is never served as if internally authenticated.
+AC-7: Given a stored authentication record whose `authenticationOrigin` is `EXTERNAL`, when the
+endpoint is called, then the service returns 404 with no authentication or order data — the
+record is never served as if it were internally authenticated.
 
 AC-8: Given inbound tracing headers, when the endpoint is called, then those headers are
 propagated across the hop to the legacy edge and echoed to the caller, and their values are never
