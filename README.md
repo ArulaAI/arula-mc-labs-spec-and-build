@@ -3,7 +3,7 @@
 **Open Claude Code at this directory.** It is the project root for the whole lab.
 
 ```
-lab2-payer-auth/
+arula-mc-labs-spec-and-build/
   .claude/                                 shared lab config for the workspace
     settings.json                          lab-local hooks
     lab.json                               lab metadata + rubric pointer
@@ -44,7 +44,7 @@ legacy edge that is not in the workspace at all**:
 
 | Part | What it is | Git |
 |---|---|---|
-| `lab2-payer-auth/` | the workspace root — shared `.claude/` config, hooks, rubric, grader, guarded reference states | its own repo |
+| `arula-mc-labs-spec-and-build/` | the workspace root — shared `.claude/` config, hooks, rubric, grader, guarded reference states | its own repo |
 | `boost-authentication-service/` | owned repo — the producer, where the work and the trap live | its own repo, own history, committed baseline |
 | `boost-order-processing/` | owned repo — the consumer | its own repo, own history, committed baseline |
 | `target-pass-proxy` | the legacy Target/PASS edge | **no repo, no source, not in the workspace** — represented solely by `.claude/context/target-pass-proxy.context.md` |
