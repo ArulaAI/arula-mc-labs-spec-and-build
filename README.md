@@ -58,7 +58,7 @@ two contract copies drift apart.
 
 Both routes below produce exactly the architecture in the table above.
 
-**A. From the distribution bundle (what this repository is).** One clone carries all three
+**From the distribution bundle (what this repository is).** One clone carries all three
 parts; a single idempotent script then gives each owned repo its own git history:
 
 ```bash
@@ -67,20 +67,10 @@ cd arula-mc-labs-spec-and-build
 .claude/scripts/bootstrap_workspace.sh
 ```
 
-**B. From three remotes (the closest match to how a real squad works).** Publish the workspace
-scaffold and each owned repo to its own remote, then have participants clone them side by side:
-
-```bash
-git clone <workspace-remote> arula-mc-labs-spec-and-build
-cd arula-mc-labs-spec-and-build
-git clone <auth-service-remote> boost-authentication-service
-git clone <order-processing-remote> boost-order-processing
-```
-
-Either way, **each owned repo must have a committed baseline before a learner touches it.** The
+**Each owned repo must have a committed baseline before a learner touches it.** The
 PAN/secret gate diffs the working tree against `HEAD`; without a `HEAD` to diff against, it
 reports "skip" and silently protects nothing for the whole session. `bootstrap_workspace.sh`
-guarantees this for route A; route B gets it from the remotes themselves.
+guarantees this.
 
 Open Claude Code at the workspace root — never at one of the owned repos. The shared `.claude/`,
 the hooks and the grader all resolve from there, and `journey/` is written there.
