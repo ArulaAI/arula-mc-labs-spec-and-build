@@ -344,6 +344,11 @@ two things landed as **testable criteria**, not as prose in a paragraph:
 - The out-of-scope constraint. "Externally-authenticated transactions are out of scope" is prose:
   it says nothing a test can assert. "An `EXTERNAL` record **returns 404 with no data**" is a test.
 
+In production, this is the point a PMT/PO would sign off before `/build` runs — the spec is a
+tech spec, not the PRD, and someone besides the engineer who wrote it owns whether its acceptance
+criteria actually say what the business meant. You're doing that check yourself here; don't wave
+it through any more than you would if it were someone else's approval on the line.
+
 A constraint with no observable is the worst of both worlds: doing nothing violates it, and doing
 something feels like inventing behaviour. Pin the observable here and Stage 4 has something to
 build to.

@@ -3,6 +3,10 @@
 **Status:** DRAFT — carried over from the Solution Intent, not yet validated.
 **Owner:** AFR Modernization · **Repo:** `boost-authentication-service` (producer),
 `boost-order-processing` (consumer)
+**Kind:** Tech spec — downstream of the PRD, not itself the PMT-owned requirements artifact.
+**Provenance:** the scenario, endpoint and the no-second-billable-call rule are real Mastercard
+requirements (`PGSE-88`, spec-pack Spec 2). The two gaps below (missing `## Non-Negotiables`,
+untestable `AC-3`) are seeded for this exercise, not a defect in the source requirements.
 
 ## Context
 
