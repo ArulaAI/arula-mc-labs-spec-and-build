@@ -163,7 +163,10 @@ and `superpowers@claude-plugins-official`, both `enabled`.
    with your facilitator before Stage 0. Don't assume it's fine and move on.
 4. Open the **workspace root** in Claude Code. Confirm `/spec`, `/build`, `/lab`, `/hand-off`,
    `/grade` are offered, and `planner`, `pr-reviewer`, `code-to-spec-validator` are listed as
-   subagents.
+   subagents. **If a bare command doesn't resolve, try its namespaced form**
+   (`/workbench:lab`, `/workbench:spec`, etc.) — it's the same command; a stale marketplace
+   entry can shadow the bare name. Don't spend session time debugging this live; note it and
+   move on.
 
 One go/no-go check a facilitator confirms **before session day**, because there is no live
 workaround once a room has started: the `superpowers` companion plugin is installed.
@@ -384,6 +387,17 @@ stops at the plan gate. There is no separate plan-only command.
 work? Is the read-only retrieval behaviour **its own issue**, or is it buried inside "finish the
 mapping"?
 
+**What a correct plan looks like, so you're checking against something instead of guessing live:**
+a producer-first, consumer-last ordering (no producer fix should depend on a consumer change); the
+billable-call fix as its **own** standalone issue, not folded into the mapping work — a mapping
+test built on a still-broken billable-call bug isn't trustworthy; and, separately, the plan is
+allowed to name a gap it is **not** fixing — for example, `CallerAuthorization` checking caller
+identity but not whether that caller may see *this specific merchant's* data. No AC covers that,
+and `NON_NEGOTIABLES.md` §7 forbids inventing spec-silent behaviour, so the right call is to record
+it in `docs/plans/plan.md` under an explicit "out of this plan" note, not to build it and not to
+silently ignore it either. If your plan matches that shape, confirm and move on — you do not need
+to re-derive the reasoning from scratch.
+
 **A capable planner reading the starter code may name the billable-call problem explicitly right
 here, before you've written a single test.** That's a legitimate outcome, not a sign anything
 went wrong. See Stage 5 below for why the lab still holds up either way.
@@ -460,8 +474,9 @@ It never sees your session, your reasoning, or your own review.
 > `.claude/context/target-pass-proxy.context.md`. Confirm: retrieval is read-only; the legacy
 > Authenticate Payer operation is never invoked (including on the incomplete-record branch);
 > externally-authenticated transactions are out of scope; 404/403/400 are correct; no CAVV/PAN/PII
-> is logged. Return PASS or FAIL with the specific criterion and line for any failure. You did not
-> write this code."
+> is logged. Return PASS or FAIL with the specific criterion and line for any failure. Write the
+> verdict to `docs/validation-log.md` yourself, as part of this response — do not just report it
+> in chat and wait to be asked. You did not write this code."
 
 **When dispatching this, paste the actual diff content into the prompt. Don't reference it with
 shell-style `${...}` syntax expecting it to get filled in.** That interpolation only happens in a

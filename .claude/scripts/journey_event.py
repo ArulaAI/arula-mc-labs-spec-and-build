@@ -37,6 +37,26 @@ def journey_dir() -> Path:
     return Path(override) if override else workspace_root() / "journey"
 
 
+def resolve_session_id() -> str:
+    """The real session id, resolved the same way the plugin's hook-driven journey writer
+    sees it — so a hand-off lands in the same file as the tool-call events instead of a
+    separate `lab2-local.jsonl` the grader can't reconcile with the real session.
+
+    `CLAUDE_SESSION_ID` is only exported into hook subprocesses, never into a plain
+    `Bash` invocation like this one, so it is almost never set here. By the time any
+    `/hand-off` runs, Stage 0's `/lab` has already caused the hook to write tool events
+    under the real session id, so that file already exists and is the most recently
+    modified one in the journey directory.
+    """
+    env_session = os.environ.get("CLAUDE_SESSION_ID")
+    if env_session:
+        return env_session
+    existing = sorted(
+        journey_dir().glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    return existing[0].stem if existing else "lab2-local"
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("event", help="event type, e.g. hand-off")
@@ -44,7 +64,7 @@ def main() -> None:
     parser.add_argument("--name", default="")
     args = parser.parse_args()
 
-    session = os.environ.get("CLAUDE_SESSION_ID", "lab2-local")
+    session = resolve_session_id()
     target = journey_dir()
     target.mkdir(parents=True, exist_ok=True)
     event = {
