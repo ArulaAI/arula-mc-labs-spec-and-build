@@ -478,9 +478,12 @@ It never sees your session, your reasoning, or your own review.
 > `.claude/context/target-pass-proxy.context.md`. Confirm: retrieval is read-only; the legacy
 > Authenticate Payer operation is never invoked (including on the incomplete-record branch);
 > externally-authenticated transactions are out of scope; 404/403/400 are correct; no CAVV/PAN/PII
-> is logged. Return PASS or FAIL with the specific criterion and line for any failure. Write the
-> verdict to `docs/validation-log.md` yourself, as part of this response — do not just report it
-> in chat and wait to be asked. You did not write this code."
+> is logged. Return PASS or FAIL with the specific criterion and line for any failure. You did not
+> write this code."
+
+As soon as the verdict comes back:
+
+> "Write that verdict to `docs/validation-log.md` now."
 
 **When dispatching this, paste the actual diff content into the prompt. Don't reference it with
 shell-style `${...}` syntax expecting it to get filled in.** That interpolation only happens in a
