@@ -379,7 +379,11 @@ stops at the plan gate. There is no separate plan-only command.
 > issues, each with its own acceptance criteria, and for each issue name which repo it touches
 > (`boost-authentication-service` producer work vs. `boost-order-processing` consumer wiring).
 > Write `issues.json` and `docs/plans/plan.md` **as local files only: do NOT run
-> `gh issue create` or create any GitHub issue.** Stop at the plan gate for review."
+> `gh issue create` or create any GitHub issue.** Before stopping, check your own plan against a
+> producer-first/consumer-last ordering, the billable-call fix standing as its own issue, and any
+> spec-silent gap named as a recorded exclusion rather than built or ignored — note where it holds
+> and where it doesn't. Then present the plan and that self-check together, and stop at the plan
+> gate for my review."
 
 **Artifacts.** `issues.json` · `docs/plans/plan.md`: both local files, no GitHub issue created.
 
