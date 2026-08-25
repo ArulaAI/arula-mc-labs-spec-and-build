@@ -7,7 +7,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/reference_guard.py\"",
+            "shell": "bash",
+            "command": "PY=$(command -v python3 2>/dev/null || command -v python 2>/dev/null); \"$PY\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/reference_guard.py\"",
             "timeout": 10
           }
         ]
@@ -17,7 +18,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pan_gate.py\"",
+            "shell": "bash",
+            "command": "PY=$(command -v python3 2>/dev/null || command -v python 2>/dev/null); \"$PY\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/pan_gate.py\"",
             "timeout": 10
           }
         ]
@@ -27,7 +29,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr_gate_guard.py\"",
+            "shell": "bash",
+            "command": "PY=$(command -v python3 2>/dev/null || command -v python 2>/dev/null); \"$PY\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr_gate_guard.py\"",
             "timeout": 300
           }
         ]
@@ -43,7 +46,8 @@
       "Write",
       "Bash(mvn:*)",
       "Bash(git:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "Bash(python:*)"
     ]
   }
 }

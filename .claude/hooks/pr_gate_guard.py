@@ -22,6 +22,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+MVN = "mvn.cmd" if os.name == "nt" else "mvn"
+
 PR_ARTIFACT = "docs/PR_DESCRIPTION.md"
 PR_ARTIFACT_NAME = "PR_DESCRIPTION.md"
 # A shell command counts as an attempt to write the PR artifact only if it both names the file
@@ -63,7 +65,7 @@ def maven_verify(repo: Path) -> tuple[bool, str]:
     if not (repo / "pom.xml").exists():
         return False, f"{repo} is not a Maven repo — gate cannot be evaluated"
     result = subprocess.run(
-        ["mvn", "-B", "-q", "verify"],
+        [MVN, "-B", "-q", "verify"],
         cwd=repo, capture_output=True, text=True,
     )
     if result.returncode == 0:

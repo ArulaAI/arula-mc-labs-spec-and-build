@@ -27,6 +27,8 @@ import tempfile
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
+MVN = "mvn.cmd" if os.name == "nt" else "mvn"
+
 AUTH = "boost-authentication-service"
 ORDERS = "boost-order-processing"
 
@@ -92,7 +94,7 @@ def read(root: Path, rel: str) -> str | None:
 
 
 def run_maven(repo: Path, *goals: str, extra: list[str] | None = None) -> subprocess.CompletedProcess:
-    cmd = ["mvn", "-B", "-q", *goals]
+    cmd = [MVN, "-B", "-q", *goals]
     if extra:
         cmd.extend(extra)
     return subprocess.run(cmd, cwd=repo, capture_output=True, text=True)
@@ -519,7 +521,7 @@ def check_anti_gaming(root: Path, report: Report, billable_test: Path | None) ->
             shutil.copy2(source, destination)
 
         applied = subprocess.run(
-            ["patch", "-p1", "-s", "-i", str(patch)],
+            ["git", "apply", "--whitespace=nowarn", str(patch)],
             cwd=work, capture_output=True, text=True)
         if applied.returncode != 0:
             report.add("anti-gaming-probe", False,

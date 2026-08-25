@@ -115,6 +115,7 @@ are already independently owned.
   missing.
 - Claude Code, with the `workbench` plugin **and its `superpowers` companion** installed. See
   below if you don't have this yet.
+- **Windows only:** Git Bash installed (e.g. via [Git for Windows](https://git-scm.com/downloads/win)) — Claude Code runs this lab's hooks through it, and falls back to PowerShell, where they won't run correctly, if it's missing.
 - No Docker, no Kafka, no CI, no network at runtime. The legacy edge is a local stand-in.
 
 ### Get the plugin
