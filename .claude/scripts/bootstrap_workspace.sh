@@ -7,4 +7,5 @@
 # Windows (no bash): python3 .claude/scripts/bootstrap_workspace.py
 
 set -euo pipefail
-exec python3 "$(dirname "${BASH_SOURCE[0]}")/bootstrap_workspace.py"
+PY=$(command -v python3 2>/dev/null || command -v python 2>/dev/null)
+exec "$PY" "$(dirname "${BASH_SOURCE[0]}")/bootstrap_workspace.py"
