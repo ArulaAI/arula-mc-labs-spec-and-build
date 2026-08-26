@@ -6,3 +6,5 @@ journey/
 
 # Python bytecode from the lab scripts
 __pycache__/
+boost-authentication-service/
+boost-order-processing/

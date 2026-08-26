@@ -1,9 +1,0 @@
-{
-  "valid": false,
-  "missing_sections": [
-    "## Non-Negotiables"
-  ],
-  "non_testable_acs": [
-    "AC-3"
-  ]
-}
